@@ -16,7 +16,7 @@ const translations = {
     login: "Login",
     error: "Invalid email or password"
   },
-  es: {
+  bg: {
     title: "Inicio de Sesión Admin",
     email: "Correo",
     password: "Contraseña",

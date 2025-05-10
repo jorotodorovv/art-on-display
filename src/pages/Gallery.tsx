@@ -12,7 +12,7 @@ const translations = {
     allTags: "All Tags",
     noArtworks: "No artworks found."
   },
-  es: {
+  bg: {
     title: "Galería",
     allCategories: "Todos",
     allTags: "Todas las Etiquetas",

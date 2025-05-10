@@ -31,7 +31,7 @@ const translations = {
     tags: "Tags",
     addToGallery: "Add to Gallery"
   },
-  es: {
+  bg: {
     title: "Panel de Administración",
     subtitle: "Administra tu galería",
     upload: "Subir Fotos",
