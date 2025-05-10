@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -14,33 +14,41 @@ import { useArtworks } from "@/contexts/ArtworkContext";
 import { useLanguage } from "@/components/LanguageToggle";
 import { toast } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X, FileImage } from "lucide-react";
 
 const translations = {
   en: {
     title: "Upload Artwork",
-    imageUrl: "Image URL",
+    imageUpload: "Upload Image",
     artworkTitle: "Title",
     category: "Category",
     year: "Year",
     description: "Description",
-    tags: "Tags (comma separated)",
+    tags: "Tags",
+    addTag: "Add tag",
     upload: "Upload",
     cancel: "Cancel",
     success: "Artwork uploaded successfully",
-    error: "Please fill in all required fields"
+    error: "Please fill in all required fields",
+    dragHere: "Drag image here or click to browse",
+    tagPlaceholder: "Enter a tag..."
   },
   bg: {
     title: "Subir Obra",
-    imageUrl: "URL de Imagen",
+    imageUpload: "Subir Imagen",
     artworkTitle: "Título",
     category: "Categoría",
     year: "Año",
     description: "Descripción",
-    tags: "Etiquetas (separadas por coma)",
+    tags: "Etiquetas",
+    addTag: "Añadir etiqueta",
     upload: "Subir",
     cancel: "Cancelar",
     success: "Obra subida exitosamente",
-    error: "Por favor completa todos los campos requeridos"
+    error: "Por favor completa todos los campos requeridos",
+    dragHere: "Arrastra la imagen aquí o haz clic para explorar",
+    tagPlaceholder: "Introduce una etiqueta..."
   }
 };
 
@@ -53,58 +61,120 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const { addArtwork } = useArtworks();
   const { language } = useLanguage();
   const t = translations[language];
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     title: "",
-    image: "",
     category: "",
     year: "",
     description: "",
-    tagsInput: ""
+    forSale: false,
+    price: ""
   });
+  
+  const [tags, setTags] = useState<{id: string, name: string}[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      setImageFile(file);
+      
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleAddTag = () => {
+    if (tagInput.trim() === "") return;
+    
+    const newTag = {
+      id: tagInput.toLowerCase().replace(/\s+/g, "-"),
+      name: tagInput.trim()
+    };
+    
+    setTags(prevTags => [...prevTags, newTag]);
+    setTagInput("");
+  };
+  
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+  
+  const handleRemoveTag = (tagId: string) => {
+    setTags(prevTags => prevTags.filter(tag => tag.id !== tagId));
+  };
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { title, image, category, year, description, tagsInput } = formData;
+    const { title, category, year, description, price, forSale } = formData;
     
-    if (!title || !image || !category || !year) {
+    if (!title || !category || !year || !previewImage) {
       toast.error(t.error);
       return;
     }
     
-    const tagsList = tagsInput
-      .split(",")
-      .map(tag => tag.trim())
-      .filter(tag => tag !== "")
-      .map(tag => ({
-        id: tag.toLowerCase().replace(/\s+/g, "-"),
-        name: tag
-      }));
-    
+    // In a real application, you would upload the image to a server/storage
+    // For demo purposes, we'll use the data URL directly
     addArtwork({
       title,
-      image,
+      image: previewImage,
       category,
       year,
       description,
-      tags: tagsList
+      tags: tags,
+      forSale: forSale,
+      price: forSale ? Number(price) : undefined
     });
     
     toast.success(t.success);
+    
+    // Reset form
     setFormData({
       title: "",
-      image: "",
       category: "",
       year: "",
       description: "",
-      tagsInput: ""
+      forSale: false,
+      price: ""
     });
+    setTags([]);
+    setPreviewImage(null);
+    setImageFile(null);
     
     onOpenChange(false);
   };
@@ -117,15 +187,41 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="image">{t.imageUrl}</Label>
-            <Input
-              id="image"
-              name="image"
-              value={formData.image}
-              onChange={handleInputChange}
-              placeholder="https://example.com/image.jpg"
-              required
+          <div 
+            className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {previewImage ? (
+              <div className="relative">
+                <img src={previewImage} alt="Preview" className="max-h-48 mx-auto rounded-md" />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="destructive"
+                  className="absolute top-2 right-2 h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewImage(null);
+                    setImageFile(null);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <div className="py-4 flex flex-col items-center text-muted-foreground">
+                <FileImage className="h-8 w-8 mb-2" />
+                <p>{t.dragHere}</p>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
             />
           </div>
           
@@ -176,14 +272,37 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="tagsInput">{t.tags}</Label>
-            <Input
-              id="tagsInput"
-              name="tagsInput"
-              value={formData.tagsInput}
-              onChange={handleInputChange}
-              placeholder="Nature, Abstract, Modern"
-            />
+            <Label>{t.tags}</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map(tag => (
+                <Badge key={tag.id} className="flex gap-1 items-center">
+                  {tag.name}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => handleRemoveTag(tag.id)}
+                  />
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder={t.tagPlaceholder}
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                onClick={handleAddTag}
+                size="sm"
+                className="flex-shrink-0"
+                disabled={!tagInput.trim()}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {t.addTag}
+              </Button>
+            </div>
           </div>
           
           <DialogFooter className="mt-6">

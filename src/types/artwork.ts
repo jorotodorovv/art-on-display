@@ -12,4 +12,6 @@ export interface Artwork {
   year: string;
   description: string;
   tags: ArtworkTag[];
+  forSale?: boolean;
+  price?: number;
 }

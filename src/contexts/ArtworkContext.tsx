@@ -2,6 +2,17 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { Artwork } from "../types/artwork";
 
+// Type for artworks for sale
+export interface ArtworkForSale {
+  id: number;
+  title: string;
+  image: string;
+  price: number;
+  category: string;
+  description: string;
+  available: boolean;
+}
+
 // Initial artwork data
 const initialArtworks: Artwork[] = [
   {
@@ -11,7 +22,8 @@ const initialArtworks: Artwork[] = [
     category: "Paintings",
     year: "2023",
     description: "Acrylic on canvas, 24x36 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }]
+    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }],
+    forSale: false
   },
   {
     id: 2,
@@ -20,7 +32,8 @@ const initialArtworks: Artwork[] = [
     category: "Mixed Media",
     year: "2022",
     description: "Mixed media on paper, 18x24 inches",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "modern", name: "Modern" }]
+    tags: [{ id: "abstract", name: "Abstract" }, { id: "modern", name: "Modern" }],
+    forSale: false
   },
   {
     id: 3,
@@ -29,7 +42,8 @@ const initialArtworks: Artwork[] = [
     category: "Digital Art",
     year: "2023",
     description: "Digital print on archival paper, 16x20 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }]
+    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }],
+    forSale: false
   },
   {
     id: 4,
@@ -38,7 +52,8 @@ const initialArtworks: Artwork[] = [
     category: "Photography",
     year: "2022",
     description: "Digital photography, limited edition print",
-    tags: [{ id: "urban", name: "Urban" }, { id: "architecture", name: "Architecture" }]
+    tags: [{ id: "urban", name: "Urban" }, { id: "architecture", name: "Architecture" }],
+    forSale: false
   },
   {
     id: 5,
@@ -47,7 +62,9 @@ const initialArtworks: Artwork[] = [
     category: "Paintings",
     year: "2021",
     description: "Oil on canvas, 30x40 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "night", name: "Night" }]
+    tags: [{ id: "nature", name: "Nature" }, { id: "night", name: "Night" }],
+    forSale: true,
+    price: 1200
   },
   {
     id: 6,
@@ -56,7 +73,8 @@ const initialArtworks: Artwork[] = [
     category: "Photography",
     year: "2021",
     description: "Digital photography, archival print",
-    tags: [{ id: "nature", name: "Nature" }, { id: "forest", name: "Forest" }]
+    tags: [{ id: "nature", name: "Nature" }, { id: "forest", name: "Forest" }],
+    forSale: false
   },
   {
     id: 7,
@@ -65,7 +83,9 @@ const initialArtworks: Artwork[] = [
     category: "Digital Art",
     year: "2022",
     description: "Digital art, limited edition print",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "geometry", name: "Geometry" }]
+    tags: [{ id: "abstract", name: "Abstract" }, { id: "geometry", name: "Geometry" }],
+    forSale: true,
+    price: 550
   },
   {
     id: 8,
@@ -74,7 +94,8 @@ const initialArtworks: Artwork[] = [
     category: "Mixed Media",
     year: "2020",
     description: "Mixed media on canvas, 24x36 inches",
-    tags: [{ id: "urban", name: "Urban" }, { id: "landscape", name: "Landscape" }]
+    tags: [{ id: "urban", name: "Urban" }, { id: "landscape", name: "Landscape" }],
+    forSale: false
   },
   {
     id: 9,
@@ -83,13 +104,16 @@ const initialArtworks: Artwork[] = [
     category: "Paintings",
     year: "2021",
     description: "Acrylic on canvas, 18x24 inches",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "colorful", name: "Colorful" }]
+    tags: [{ id: "abstract", name: "Abstract" }, { id: "colorful", name: "Colorful" }],
+    forSale: false
   }
 ];
 
 interface ArtworkContextType {
   artworks: Artwork[];
+  artworksForSale: ArtworkForSale[];
   addArtwork: (artwork: Omit<Artwork, "id">) => void;
+  setArtworkForSale: (id: number, price: number) => void;
   getTags: () => { id: string; name: string }[];
 }
 
@@ -104,6 +128,17 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     setArtworks([...artworks, { ...artwork, id: newId }]);
   };
 
+  // Set artwork for sale
+  const setArtworkForSale = (id: number, price: number) => {
+    setArtworks(currentArtworks => 
+      currentArtworks.map(artwork => 
+        artwork.id === id 
+          ? { ...artwork, forSale: true, price } 
+          : artwork
+      )
+    );
+  };
+
   // Get unique tags from all artworks
   const getTags = () => {
     const tagsMap = new Map();
@@ -115,8 +150,27 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     return Array.from(tagsMap.values());
   };
 
+  // Generate artworks for sale from regular artworks
+  const artworksForSale = artworks
+    .filter(artwork => artwork.forSale)
+    .map(artwork => ({
+      id: artwork.id,
+      title: artwork.title,
+      image: artwork.image,
+      price: artwork.price || 0,
+      category: artwork.category,
+      description: artwork.description,
+      available: true
+    }));
+
   return (
-    <ArtworkContext.Provider value={{ artworks, addArtwork, getTags }}>
+    <ArtworkContext.Provider value={{ 
+      artworks, 
+      artworksForSale,
+      addArtwork, 
+      setArtworkForSale,
+      getTags 
+    }}>
       {children}
     </ArtworkContext.Provider>
   );

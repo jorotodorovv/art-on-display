@@ -3,78 +3,61 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { useArtworks } from "@/contexts/ArtworkContext";
+import { useLanguage } from "@/components/LanguageToggle";
 
-// Define artwork types and data for sale
-interface ArtworkForSale {
-  id: number;
-  title: string;
-  image: string;
-  price: number;
-  category: string;
-  description: string;
-  available: boolean;
-}
-
-const artworksForSale: ArtworkForSale[] = [
-  {
-    id: 1,
-    title: "Serene Lake",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-    price: 850,
-    category: "Paintings",
-    description: "Acrylic on canvas, 24x36 inches",
-    available: true
+const translations = {
+  en: {
+    title: "Artwork For Sale",
+    description: "Browse available original artworks and prints. Contact via email for purchase inquiries or custom commissions.",
+    inquirySent: "Inquiry Sent",
+    inquiryDescription: "We'll contact you about \"{title}\" soon.",
+    sold: "Sold",
+    inquire: "Inquire",
+    commissionsTitle: "Commission Information",
+    commissionsDescription: "I'm available for custom artwork commissions. Please contact me with your ideas and requirements.",
+    process: "Process:",
+    processDetails: "Initial consultation, concept sketches, final artwork creation",
+    timeline: "Timeline:",
+    timelineDetails: "2-4 weeks depending on size and complexity",
+    pricing: "Pricing:",
+    pricingDetails: "Starting at $500, varies based on size and materials",
+    requestCommission: "Request Commission"
   },
-  {
-    id: 2,
-    title: "Abstract Forms",
-    image: "https://images.unsplash.com/photo-1493397212122-2b85dda8106b",
-    price: 650,
-    category: "Mixed Media",
-    description: "Mixed media on paper, 18x24 inches",
-    available: true
-  },
-  {
-    id: 3,
-    title: "Mountain Vista",
-    image: "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-    price: 450,
-    category: "Digital Art",
-    description: "Digital print on archival paper, 16x20 inches",
-    available: true
-  },
-  {
-    id: 4,
-    title: "Night Sky",
-    image: "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb",
-    price: 1200,
-    category: "Paintings",
-    description: "Oil on canvas, 30x40 inches",
-    available: true
-  },
-  {
-    id: 5,
-    title: "Geometric Patterns",
-    image: "https://images.unsplash.com/photo-1492321936769-b49830bc1d1e",
-    price: 550,
-    category: "Digital Art",
-    description: "Digital art, limited edition print",
-    available: false
+  bg: {
+    title: "Obras en Venta",
+    description: "Explore obras originales y impresiones disponibles. Contacte por email para consultas de compra o comisiones personalizadas.",
+    inquirySent: "Consulta Enviada",
+    inquiryDescription: "Te contactaremos sobre \"{title}\" pronto.",
+    sold: "Vendido",
+    inquire: "Consultar",
+    commissionsTitle: "Información de Comisiones",
+    commissionsDescription: "Estoy disponible para comisiones de obras personalizadas. Contáctame con tus ideas y requisitos.",
+    process: "Proceso:",
+    processDetails: "Consulta inicial, bocetos conceptuales, creación de obra final",
+    timeline: "Tiempo:",
+    timelineDetails: "2-4 semanas dependiendo del tamaño y complejidad",
+    pricing: "Precios:",
+    pricingDetails: "Desde $500, varía según tamaño y materiales",
+    requestCommission: "Solicitar Comisión"
   }
-];
+};
 
 const ForSale = () => {
   const [loaded, setLoaded] = useState(false);
   const { toast } = useToast();
+  const { artworksForSale } = useArtworks();
+  const { language } = useLanguage();
+  const t = translations[language];
   
   useEffect(() => {
     setLoaded(true);
   }, []);
   
-  const handleInquire = (artwork: ArtworkForSale) => {
+  const handleInquire = (title: string) => {
     toast({
-      title: "Inquiry Sent",
-      description: `We'll contact you about "${artwork.title}" soon.`,
+      title: t.inquirySent,
+      description: t.inquiryDescription.replace("{title}", title),
     });
   };
   
@@ -88,9 +71,9 @@ const ForSale = () => {
   return (
     <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
       <div>
-        <h1 className="text-3xl font-bold mb-2">Artwork For Sale</h1>
+        <h1 className="text-3xl font-bold mb-2">{t.title}</h1>
         <p className="text-muted-foreground mb-6 max-w-2xl">
-          Browse available original artworks and prints. Contact via email for purchase inquiries or custom commissions.
+          {t.description}
         </p>
       </div>
       
@@ -105,7 +88,7 @@ const ForSale = () => {
               />
               {!artwork.available && (
                 <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                  <Badge className="text-lg py-1.5 px-3">Sold</Badge>
+                  <Badge className="text-lg py-1.5 px-3">{t.sold}</Badge>
                 </div>
               )}
             </div>
@@ -116,40 +99,46 @@ const ForSale = () => {
               <div className="mt-auto pt-4 flex items-center justify-between">
                 <p className="text-lg font-medium">{formatPrice(artwork.price)}</p>
                 <Button 
-                  onClick={() => handleInquire(artwork)} 
+                  onClick={() => handleInquire(artwork.title)} 
                   disabled={!artwork.available}
                   className="hover-scale"
                 >
-                  {artwork.available ? "Inquire" : "Sold"}
+                  {artwork.available ? t.inquire : t.sold}
                 </Button>
               </div>
             </div>
           </div>
         ))}
+        
+        {artworksForSale.length === 0 && (
+          <div className="col-span-2 text-center py-12">
+            <p className="text-muted-foreground">No artworks currently for sale.</p>
+          </div>
+        )}
       </div>
       
       <div className="mt-12 p-6 bg-muted rounded-lg">
-        <h2 className="text-xl font-semibold mb-4">Commission Information</h2>
+        <h2 className="text-xl font-semibold mb-4">{t.commissionsTitle}</h2>
         <p className="mb-4">
-          I'm available for custom artwork commissions. Please contact me with your ideas and requirements.
+          {t.commissionsDescription}
         </p>
         <div className="space-y-3">
           <div>
-            <h3 className="font-medium">Process:</h3>
-            <p className="text-sm text-muted-foreground">Initial consultation, concept sketches, final artwork creation</p>
+            <h3 className="font-medium">{t.process}</h3>
+            <p className="text-sm text-muted-foreground">{t.processDetails}</p>
           </div>
           <div>
-            <h3 className="font-medium">Timeline:</h3>
-            <p className="text-sm text-muted-foreground">2-4 weeks depending on size and complexity</p>
+            <h3 className="font-medium">{t.timeline}</h3>
+            <p className="text-sm text-muted-foreground">{t.timelineDetails}</p>
           </div>
           <div>
-            <h3 className="font-medium">Pricing:</h3>
-            <p className="text-sm text-muted-foreground">Starting at $500, varies based on size and materials</p>
+            <h3 className="font-medium">{t.pricing}</h3>
+            <p className="text-sm text-muted-foreground">{t.pricingDetails}</p>
           </div>
         </div>
         <div className="mt-6">
           <Button asChild className="hover-scale">
-            <a href="mailto:artist@example.com">Request Commission</a>
+            <a href="mailto:artist@example.com">{t.requestCommission}</a>
           </Button>
         </div>
       </div>

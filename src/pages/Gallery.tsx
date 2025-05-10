@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import ArtworkGrid from "@/components/gallery/ArtworkGrid";
 import ArtworkDetail from "@/components/gallery/ArtworkDetail";
 import UploadArtworkModal from "@/components/gallery/UploadArtworkModal";
+import SetForSaleModal from "@/components/gallery/SetForSaleModal";
 
 const translations = {
   en: {
@@ -40,6 +41,8 @@ const Gallery = () => {
   const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>(artworks);
   const [visibleArtwork, setVisibleArtwork] = useState<Artwork | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isForSaleModalOpen, setIsForSaleModalOpen] = useState(false);
+  const [selectedForSaleArtwork, setSelectedForSaleArtwork] = useState<Artwork | null>(null);
   
   // Get unique categories
   const categories = ["All", ...new Set(artworks.map(artwork => artwork.category))];
@@ -84,6 +87,12 @@ const Gallery = () => {
   
   const closeArtworkDetail = () => {
     setVisibleArtwork(null);
+  };
+  
+  const handleSetForSale = (artwork: Artwork) => {
+    setSelectedForSaleArtwork(artwork);
+    setVisibleArtwork(null);
+    setIsForSaleModalOpen(true);
   };
   
   return (
@@ -145,12 +154,22 @@ const Gallery = () => {
       />
       
       {visibleArtwork && (
-        <ArtworkDetail artwork={visibleArtwork} onClose={closeArtworkDetail} />
+        <ArtworkDetail 
+          artwork={visibleArtwork} 
+          onClose={closeArtworkDetail}
+          onSetForSale={isAuthenticated ? handleSetForSale : undefined}
+        />
       )}
       
       <UploadArtworkModal 
         open={isUploadModalOpen} 
         onOpenChange={setIsUploadModalOpen} 
+      />
+      
+      <SetForSaleModal
+        open={isForSaleModalOpen}
+        onOpenChange={setIsForSaleModalOpen}
+        artwork={selectedForSaleArtwork}
       />
     </div>
   );

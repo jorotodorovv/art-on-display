@@ -3,14 +3,30 @@ import React from "react";
 import { Artwork } from "@/types/artwork";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, DollarSign } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/components/LanguageToggle";
+
+const translations = {
+  en: {
+    addToSale: "Add to For Sale",
+  },
+  bg: {
+    addToSale: "Añadir a En Venta",
+  }
+};
 
 interface ArtworkDetailProps {
   artwork: Artwork;
   onClose: () => void;
+  onSetForSale?: (artwork: Artwork) => void;
 }
 
-const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose }) => {
+const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetForSale }) => {
+  const { isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language];
+  
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-background max-w-3xl w-full rounded-lg shadow-lg overflow-hidden animate-scale-in">
@@ -46,6 +62,18 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose }) => {
               </Badge>
             ))}
           </div>
+          
+          {isAuthenticated && onSetForSale && (
+            <div className="mt-6 pt-4 border-t">
+              <Button 
+                onClick={() => onSetForSale(artwork)}
+                className="flex items-center gap-2"
+              >
+                <DollarSign className="h-4 w-4" />
+                {t.addToSale}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
