@@ -1,9 +1,13 @@
 
-import { NavLink } from "react-router-dom";
-import { Instagram, Mail } from "lucide-react";
+import { NavLink, Link } from "react-router-dom";
+import { Instagram, Mail, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import LanguageToggle from "./LanguageToggle";
+import { useAuth } from "../contexts/AuthContext";
 
 const Header = () => {
+  const { isAuthenticated, user } = useAuth();
+
   return (
     <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -50,6 +54,8 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center space-x-4">
+          <LanguageToggle />
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -85,6 +91,42 @@ const Header = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          {isAuthenticated ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link 
+                    to="/admin"
+                    className="hover-scale text-muted-foreground hover:text-primary"
+                    aria-label="Admin"
+                  >
+                    <User className="h-5 w-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Admin Dashboard</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link 
+                    to="/login"
+                    className="hover-scale text-muted-foreground hover:text-primary"
+                    aria-label="Login"
+                  >
+                    <User className="h-5 w-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Login</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </div>
     </header>
