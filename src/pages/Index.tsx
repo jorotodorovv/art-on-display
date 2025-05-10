@@ -33,7 +33,7 @@ const Index = () => {
         <div className="flex-1 relative">
           <div className="aspect-square bg-muted rounded-md overflow-hidden image-hover">
             <img 
-              src="https://images.unsplash.com/photo-1500673922987-e212871fec22" 
+              src="https://placehold.co/1000" 
               alt="Featured artwork" 
               className="w-full h-full object-cover"
             />
