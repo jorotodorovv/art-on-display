@@ -2,7 +2,6 @@
 import React, { useState, createContext, useContext, ReactNode } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Language } from "lucide-react";
 
 type LanguageContextType = {
   language: "en" | "es";
@@ -35,7 +34,6 @@ const LanguageToggle = () => {
 
   return (
     <div className="flex items-center space-x-2 animate-fade-in">
-      <Language className="h-4 w-4 text-muted-foreground" />
       <Switch
         id="language-toggle"
         checked={language === "es"}
