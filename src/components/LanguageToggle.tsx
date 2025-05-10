@@ -4,8 +4,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 type LanguageContextType = {
-  language: "en" | "es";
-  setLanguage: (lang: "en" | "es") => void;
+  language: "en" | "bg";
+  setLanguage: (lang: "en" | "bg") => void;
 };
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -16,7 +16,7 @@ const LanguageContext = createContext<LanguageContextType>({
 export const useLanguage = () => useContext(LanguageContext);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState<"en" | "es">("en");
+  const [language, setLanguage] = useState<"en" | "bg">("en");
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage }}>
@@ -29,19 +29,19 @@ const LanguageToggle = () => {
   const { language, setLanguage } = useLanguage();
 
   const toggleLanguage = () => {
-    setLanguage(language === "en" ? "es" : "en");
+    setLanguage(language === "en" ? "bg" : "en");
   };
 
   return (
     <div className="flex items-center space-x-2 animate-fade-in">
       <Switch
         id="language-toggle"
-        checked={language === "es"}
+        checked={language === "bg"}
         onCheckedChange={toggleLanguage}
         aria-label="Toggle language"
       />
       <Label htmlFor="language-toggle" className="text-xs font-medium">
-        {language === "en" ? "EN" : "ES"}
+        {language === "en" ? "EN" : "BG"}
       </Label>
     </div>
   );
