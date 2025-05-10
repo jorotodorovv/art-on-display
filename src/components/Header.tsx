@@ -1,12 +1,17 @@
 
 import { NavLink, Link } from "react-router-dom";
-import { Instagram, Mail, User } from "lucide-react";
+import { Instagram, Mail, User, LogOut } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import LanguageToggle from "./LanguageToggle";
 import { useAuth } from "../contexts/AuthContext";
 
 const Header = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    logout();
+  };
 
   return (
     <header className="sticky top-0 z-10 w-full bg-white/80 backdrop-blur-sm border-b border-border">
@@ -96,16 +101,17 @@ const Header = () => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link 
-                    to="/admin"
+                  <a 
+                    href="#"
+                    onClick={handleLogout}
                     className="hover-scale text-muted-foreground hover:text-primary"
-                    aria-label="Admin"
+                    aria-label="Logout"
                   >
-                    <User className="h-5 w-5" />
-                  </Link>
+                    <LogOut className="h-5 w-5" />
+                  </a>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Admin Dashboard</p>
+                  <p>Logout</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

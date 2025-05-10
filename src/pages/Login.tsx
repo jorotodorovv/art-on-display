@@ -41,7 +41,7 @@ const Login = () => {
     
     try {
       await login(email, password);
-      navigate("/admin");
+      navigate("/gallery"); // Redirect to gallery instead of admin
     } catch (error) {
       toast.error(t.error);
     } finally {

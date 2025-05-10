@@ -11,7 +11,6 @@ import Gallery from "./pages/Gallery";
 import ForSale from "./pages/ForSale";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import Admin from "./pages/Admin";
 import { LanguageProvider } from "./components/LanguageToggle";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ArtworkProvider } from "./contexts/ArtworkContext";
@@ -34,7 +33,6 @@ const App = () => (
                   <Route path="gallery" element={<Gallery />} />
                   <Route path="for-sale" element={<ForSale />} />
                   <Route path="login" element={<Login />} />
-                  <Route path="admin" element={<Admin />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

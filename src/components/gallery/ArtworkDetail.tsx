@@ -1,0 +1,55 @@
+
+import React from "react";
+import { Artwork } from "@/types/artwork";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+
+interface ArtworkDetailProps {
+  artwork: Artwork;
+  onClose: () => void;
+}
+
+const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-background max-w-3xl w-full rounded-lg shadow-lg overflow-hidden animate-scale-in">
+        <div className="relative">
+          <img 
+            src={artwork.image} 
+            alt={artwork.title} 
+            className="w-full h-64 sm:h-80 object-cover"
+          />
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute top-4 right-4 rounded-full bg-background/50 hover:bg-background"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="p-6">
+          <h2 className="text-2xl font-semibold mb-2">{artwork.title}</h2>
+          <div className="flex gap-2 mb-4">
+            <Badge>{artwork.category}</Badge>
+            <Badge variant="outline">{artwork.year}</Badge>
+          </div>
+          <p className="text-muted-foreground mb-4">{artwork.description}</p>
+          <div className="flex flex-wrap gap-2">
+            {artwork.tags.map(tag => (
+              <Badge key={tag.id} variant="secondary">
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ArtworkDetail;
