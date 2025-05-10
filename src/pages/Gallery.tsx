@@ -2,117 +2,73 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/components/LanguageToggle";
+import { useArtworks } from "../contexts/ArtworkContext";
 
-// Define artwork types and data
-interface Artwork {
-  id: number;
-  title: string;
-  image: string;
-  category: string;
-  year: string;
-  description: string;
-}
-
-const artworks: Artwork[] = [
-  {
-    id: 1,
-    title: "Serene Lake",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-    category: "Paintings",
-    year: "2023",
-    description: "Acrylic on canvas, 24x36 inches"
+const translations = {
+  en: {
+    title: "Gallery",
+    allCategories: "All",
+    allTags: "All Tags",
+    noArtworks: "No artworks found."
   },
-  {
-    id: 2,
-    title: "Abstract Forms",
-    image: "https://images.unsplash.com/photo-1493397212122-2b85dda8106b",
-    category: "Mixed Media",
-    year: "2022",
-    description: "Mixed media on paper, 18x24 inches"
-  },
-  {
-    id: 3,
-    title: "Mountain Vista",
-    image: "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-    category: "Digital Art",
-    year: "2023",
-    description: "Digital print on archival paper, 16x20 inches"
-  },
-  {
-    id: 4,
-    title: "Urban Geometry",
-    image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
-    category: "Photography",
-    year: "2022",
-    description: "Digital photography, limited edition print"
-  },
-  {
-    id: 5,
-    title: "Night Sky",
-    image: "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb",
-    category: "Paintings",
-    year: "2021",
-    description: "Oil on canvas, 30x40 inches"
-  },
-  {
-    id: 6,
-    title: "Forest Lights",
-    image: "https://images.unsplash.com/photo-1500673922987-e212871fec22",
-    category: "Photography",
-    year: "2021",
-    description: "Digital photography, archival print"
-  },
-  {
-    id: 7,
-    title: "Geometric Patterns",
-    image: "https://images.unsplash.com/photo-1492321936769-b49830bc1d1e",
-    category: "Digital Art",
-    year: "2022",
-    description: "Digital art, limited edition print"
-  },
-  {
-    id: 8,
-    title: "Urban Landscape",
-    image: "https://images.unsplash.com/photo-1527576539890-dfa815648363",
-    category: "Mixed Media",
-    year: "2020",
-    description: "Mixed media on canvas, 24x36 inches"
-  },
-  {
-    id: 9,
-    title: "Colorful Abstract",
-    image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
-    category: "Paintings",
-    year: "2021",
-    description: "Acrylic on canvas, 18x24 inches"
+  es: {
+    title: "Galería",
+    allCategories: "Todos",
+    allTags: "Todas las Etiquetas",
+    noArtworks: "No se encontraron obras."
   }
-];
+};
 
 const Gallery = () => {
+  const { language } = useLanguage();
+  const { artworks } = useArtworks();
+  const t = translations[language];
+  
   const [loaded, setLoaded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>(artworks);
-  const [visibleArtwork, setVisibleArtwork] = useState<Artwork | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [filteredArtworks, setFilteredArtworks] = useState(artworks);
+  const [visibleArtwork, setVisibleArtwork] = useState<typeof artworks[0] | null>(null);
   
   // Get unique categories
   const categories = ["All", ...new Set(artworks.map(artwork => artwork.category))];
   
+  // Get unique tags
+  const tags = [...new Set(artworks.flatMap(artwork => artwork.tags.map(tag => tag.id)))];
+  const tagObjects = tags.map(tagId => {
+    const foundTag = artworks.flatMap(artwork => artwork.tags).find(tag => tag.id === tagId);
+    return foundTag || { id: tagId, name: tagId };
+  });
+  
   useEffect(() => {
     setLoaded(true);
     
-    // Filter artworks based on selected category
-    if (!selectedCategory || selectedCategory === "All") {
-      setFilteredArtworks(artworks);
-    } else {
-      setFilteredArtworks(artworks.filter(artwork => artwork.category === selectedCategory));
+    // Filter artworks based on selected category and tag
+    let filtered = [...artworks];
+    
+    if (selectedCategory && selectedCategory !== "All") {
+      filtered = filtered.filter(artwork => artwork.category === selectedCategory);
     }
-  }, [selectedCategory]);
+    
+    if (selectedTag) {
+      filtered = filtered.filter(artwork => 
+        artwork.tags.some(tag => tag.id === selectedTag)
+      );
+    }
+    
+    setFilteredArtworks(filtered);
+  }, [selectedCategory, selectedTag, artworks]);
   
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category === "All" ? null : category);
   };
   
-  const openArtworkDetail = (artwork: Artwork) => {
+  const handleTagSelect = (tagId: string | null) => {
+    setSelectedTag(tagId);
+  };
+  
+  const openArtworkDetail = (artwork: typeof artworks[0]) => {
     setVisibleArtwork(artwork);
   };
   
@@ -123,9 +79,9 @@ const Gallery = () => {
   return (
     <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
       <div className="flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-6">Gallery</h1>
+        <h1 className="text-3xl font-bold mb-6">{t.title}</h1>
         
-        <div className="flex flex-wrap gap-2 justify-center mb-8">
+        <div className="flex flex-wrap gap-2 justify-center mb-4">
           {categories.map((category) => (
             <Badge 
               key={category} 
@@ -137,32 +93,65 @@ const Gallery = () => {
             </Badge>
           ))}
         </div>
+        
+        <div className="flex flex-wrap gap-2 justify-center mb-8">
+          <Badge
+            variant={selectedTag === null ? "default" : "outline"}
+            className="cursor-pointer hover-scale"
+            onClick={() => handleTagSelect(null)}
+          >
+            {t.allTags}
+          </Badge>
+          {tagObjects.map((tag) => (
+            <Badge 
+              key={tag.id} 
+              variant={selectedTag === tag.id ? "secondary" : "outline"} 
+              className="cursor-pointer hover-scale"
+              onClick={() => handleTagSelect(tag.id)}
+            >
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredArtworks.map((artwork) => (
-          <div 
-            key={artwork.id} 
-            className="group cursor-pointer" 
-            onClick={() => openArtworkDetail(artwork)}
-          >
-            <div className="rounded-md overflow-hidden image-hover">
-              <img 
-                src={artwork.image} 
-                alt={artwork.title} 
-                className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-            </div>
-            <div className="mt-3">
-              <h3 className="font-medium">{artwork.title}</h3>
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">{artwork.category}</p>
-                <p className="text-sm text-muted-foreground">{artwork.year}</p>
+      {filteredArtworks.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">{t.noArtworks}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredArtworks.map((artwork) => (
+            <div 
+              key={artwork.id} 
+              className="group cursor-pointer" 
+              onClick={() => openArtworkDetail(artwork)}
+            >
+              <div className="rounded-md overflow-hidden image-hover">
+                <img 
+                  src={artwork.image} 
+                  alt={artwork.title} 
+                  className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              </div>
+              <div className="mt-3">
+                <h3 className="font-medium">{artwork.title}</h3>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">{artwork.category}</p>
+                  <p className="text-sm text-muted-foreground">{artwork.year}</p>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {artwork.tags.map(tag => (
+                    <Badge key={tag.id} variant="outline" className="text-xs">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
       
       {visibleArtwork && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -191,7 +180,14 @@ const Gallery = () => {
                 <Badge>{visibleArtwork.category}</Badge>
                 <Badge variant="outline">{visibleArtwork.year}</Badge>
               </div>
-              <p className="text-muted-foreground">{visibleArtwork.description}</p>
+              <p className="text-muted-foreground mb-4">{visibleArtwork.description}</p>
+              <div className="flex flex-wrap gap-2">
+                {visibleArtwork.tags.map(tag => (
+                  <Badge key={tag.id} variant="secondary">
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         </div>
