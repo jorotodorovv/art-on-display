@@ -4,8 +4,12 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/LanguageToggle";
-import { Upload, Import } from "lucide-react";
+import { Upload, Import, Plus, X } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useArtworks } from "../contexts/ArtworkContext";
+import { ArtworkTag } from "../types/artwork";
 
 const translations = {
   en: {
@@ -17,7 +21,15 @@ const translations = {
     dropzone: "Drag and drop your image here, or click to select",
     processing: "Processing...",
     success: "Image uploaded successfully!",
-    error: "Failed to upload image"
+    error: "Failed to upload image",
+    imageTitle: "Image Title",
+    imageDesc: "Image Description",
+    category: "Category",
+    year: "Year",
+    addTag: "Add Tag",
+    enterTag: "Enter tag",
+    tags: "Tags",
+    addToGallery: "Add to Gallery"
   },
   es: {
     title: "Panel de Administración",
@@ -28,19 +40,36 @@ const translations = {
     dropzone: "Arrastra y suelta tu imagen aquí, o haz clic para seleccionar",
     processing: "Procesando...",
     success: "¡Imagen subida exitosamente!",
-    error: "Error al subir la imagen"
+    error: "Error al subir la imagen",
+    imageTitle: "Título de la Imagen",
+    imageDesc: "Descripción de la Imagen",
+    category: "Categoría",
+    year: "Año",
+    addTag: "Añadir Etiqueta",
+    enterTag: "Ingrese etiqueta",
+    tags: "Etiquetas",
+    addToGallery: "Añadir a la Galería"
   }
 };
 
 const Admin = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { language } = useLanguage();
+  const { addArtwork, getTags } = useArtworks();
   const t = translations[language];
   
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("Paintings");
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [tagInput, setTagInput] = useState("");
+  const [selectedTags, setSelectedTags] = useState<ArtworkTag[]>([]);
+  
+  const availableTags = getTags();
+  
   if (!isAuthenticated || !user?.isAdmin) {
     return <Navigate to="/login" />;
   }
@@ -74,38 +103,81 @@ const Admin = () => {
     
     // In a real application, we'd upload these to a server or storage service
     // For demo purposes, we're just creating local URLs
-    const newImages: string[] = [];
-    
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const imageUrl = URL.createObjectURL(file);
-        newImages.push(imageUrl);
-      }
-    });
-    
-    // Simulate upload delay
-    setTimeout(() => {
-      setUploadedImages(prev => [...prev, ...newImages]);
+    if (files[0] && files[0].type.startsWith('image/')) {
+      const imageUrl = URL.createObjectURL(files[0]);
+      
+      // Simulate upload delay
+      setTimeout(() => {
+        setUploadedImage(imageUrl);
+        setIsUploading(false);
+        toast.success(t.success);
+      }, 1000);
+    } else {
       setIsUploading(false);
-      toast.success(t.success);
-    }, 1500);
+      toast.error(t.error);
+    }
   };
 
   const handleImport = () => {
     // This would typically open a dialog to import from external sources
-    // For demo purposes, let's just add some placeholder images
-    const placeholders = [
-      'https://source.unsplash.com/random/300x300?art',
-      'https://source.unsplash.com/random/300x300?painting',
-    ];
-    
     setIsUploading(true);
     
+    // For demo purposes, let's just add a placeholder image
     setTimeout(() => {
-      setUploadedImages(prev => [...prev, ...placeholders]);
+      setUploadedImage('https://source.unsplash.com/random/800x600?art');
       setIsUploading(false);
       toast.success(t.success);
-    }, 1500);
+    }, 1000);
+  };
+  
+  const addTag = () => {
+    if (tagInput.trim()) {
+      const tagId = tagInput.toLowerCase().replace(/\s+/g, '-');
+      
+      // Check if tag is already selected
+      if (!selectedTags.some(tag => tag.id === tagId)) {
+        // Check if tag exists in available tags
+        const existingTag = availableTags.find(tag => tag.id === tagId);
+        
+        if (existingTag) {
+          setSelectedTags([...selectedTags, existingTag]);
+        } else {
+          setSelectedTags([...selectedTags, { id: tagId, name: tagInput.trim() }]);
+        }
+      }
+      
+      setTagInput("");
+    }
+  };
+  
+  const removeTag = (id: string) => {
+    setSelectedTags(selectedTags.filter(tag => tag.id !== id));
+  };
+  
+  const handleAddToGallery = () => {
+    if (!title || !uploadedImage) {
+      toast.error("Please provide a title and upload an image");
+      return;
+    }
+    
+    addArtwork({
+      title,
+      image: uploadedImage,
+      category,
+      year,
+      description,
+      tags: selectedTags
+    });
+    
+    // Reset the form
+    setTitle("");
+    setDescription("");
+    setCategory("Paintings");
+    setYear(new Date().getFullYear().toString());
+    setSelectedTags([]);
+    setUploadedImage(null);
+    
+    toast.success("Added to gallery successfully!");
   };
 
   return (
@@ -121,53 +193,138 @@ const Admin = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div
-          className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors hover:bg-accent/50 ${
-            isDragging ? "border-primary bg-accent/50" : "border-border"
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => document.getElementById("file-upload")?.click()}
-        >
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">{t.dropzone}</p>
-          <input
-            id="file-upload"
-            type="file"
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileInput}
-          />
-        </div>
+        {!uploadedImage ? (
+          <>
+            <div
+              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors hover:bg-accent/50 ${
+                isDragging ? "border-primary bg-accent/50" : "border-border"
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById("file-upload")?.click()}
+            >
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">{t.dropzone}</p>
+              <input
+                id="file-upload"
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileInput}
+              />
+            </div>
 
-        <div
-          className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors hover:bg-accent/50"
-          onClick={handleImport}
-        >
-          <Import className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">{t.import}</p>
-        </div>
+            <div
+              className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors hover:bg-accent/50"
+              onClick={handleImport}
+            >
+              <Import className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">{t.import}</p>
+            </div>
+          </>
+        ) : (
+          <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="aspect-square rounded-md overflow-hidden">
+              <img
+                src={uploadedImage}
+                alt="Preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium mb-1">{t.imageTitle}</label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t.imageTitle}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium mb-1">{t.imageDesc}</label>
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={t.imageDesc}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium mb-1">{t.category}</label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2"
+                  >
+                    <option value="Paintings">Paintings</option>
+                    <option value="Digital Art">Digital Art</option>
+                    <option value="Photography">Photography</option>
+                    <option value="Mixed Media">Mixed Media</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="year" className="block text-sm font-medium mb-1">{t.year}</label>
+                  <Input
+                    id="year"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    placeholder={t.year}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">{t.tags}</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedTags.map((tag) => (
+                    <Badge key={tag.id} variant="secondary" className="flex items-center gap-1">
+                      {tag.name}
+                      <button 
+                        onClick={() => removeTag(tag.id)}
+                        className="hover:text-destructive"
+                      >
+                        <X size={14} />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                
+                <div className="flex gap-2">
+                  <Input
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    placeholder={t.enterTag}
+                    onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                  />
+                  <Button type="button" size="icon" onClick={addTag}>
+                    <Plus size={16} />
+                  </Button>
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full mt-4" 
+                onClick={handleAddToGallery}
+              >
+                {t.addToGallery}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isUploading && (
         <div className="text-center py-8">
           <p>{t.processing}</p>
-        </div>
-      )}
-
-      {uploadedImages.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {uploadedImages.map((image, index) => (
-            <div key={index} className="aspect-square rounded-md overflow-hidden">
-              <img
-                src={image}
-                alt={`Uploaded ${index + 1}`}
-                className="w-full h-full object-cover hover-scale transition-all"
-              />
-            </div>
-          ))}
         </div>
       )}
     </div>
