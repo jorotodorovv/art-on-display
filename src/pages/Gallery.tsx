@@ -44,9 +44,6 @@ const Gallery = () => {
   const [isForSaleModalOpen, setIsForSaleModalOpen] = useState(false);
   const [selectedForSaleArtwork, setSelectedForSaleArtwork] = useState<Artwork | null>(null);
   
-  // Get unique categories
-  const categories = ["All", ...new Set(artworks.map(artwork => artwork.category))];
-  
   // Get unique tags
   const tags = [...new Set(artworks.flatMap(artwork => artwork.tags.map(tag => tag.id)))];
   const tagObjects = tags.map(tagId => {
@@ -59,10 +56,6 @@ const Gallery = () => {
     
     // Filter artworks based on selected category and tag
     let filtered = [...artworks];
-    
-    if (selectedCategory && selectedCategory !== "All") {
-      filtered = filtered.filter(artwork => artwork.category === selectedCategory);
-    }
     
     if (selectedTag) {
       filtered = filtered.filter(artwork => 
@@ -112,19 +105,7 @@ const Gallery = () => {
             </Button>
           )}
         </div>
-        
-        <div className="flex flex-wrap gap-2 justify-center mb-4">
-          {categories.map((category) => (
-            <Badge 
-              key={category} 
-              variant={selectedCategory === category || (category === "All" && !selectedCategory) ? "default" : "outline"} 
-              className="cursor-pointer hover-scale"
-              onClick={() => handleCategorySelect(category)}
-            >
-              {category}
-            </Badge>
-          ))}
-        </div>
+      
         
         <div className="flex flex-wrap gap-2 justify-center mb-8">
           <Badge
