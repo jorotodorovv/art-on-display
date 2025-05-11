@@ -1,10 +1,10 @@
 import { handleUpload } from '@vercel/blob/client';
 import type { VercelRequest, VercelResponse } from '@vercel/node'; // For Vercel Serverless Functions
 
-module.exports = async (
+export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
-) => {
+) {
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method Not Allowed' });
   }

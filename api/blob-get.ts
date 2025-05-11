@@ -2,7 +2,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { list } from '@vercel/blob';
 
-module.exports = async (request: VercelRequest, response: VercelResponse) => {
+export default async function handler(
+  request: VercelRequest,
+  response: VercelResponse,
+) {
   if (request.method !== 'GET') {
     return response.status(405).send('Method Not Allowed');
   }
