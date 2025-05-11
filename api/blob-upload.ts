@@ -15,10 +15,8 @@ export default async function handler(
 
   try {
     // For Vercel serverless functions, we need to parse the body ourselves
-    const body = await JSON.parse(request.body) as HandleUploadBody;
-
     const jsonResponse = await handleUpload({
-      body,
+      body: request.body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         // Add authentication and authorization checks here
