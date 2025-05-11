@@ -22,8 +22,6 @@ const translations = {
     title: "Upload Artwork",
     imageUpload: "Upload Image",
     artworkTitle: "Title",
-    category: "Category",
-    year: "Year",
     description: "Description",
     tags: "Tags",
     addTag: "Add tag",
@@ -38,8 +36,6 @@ const translations = {
     title: "Subir Obra",
     imageUpload: "Subir Imagen",
     artworkTitle: "Título",
-    category: "Categoría",
-    year: "Año",
     description: "Descripción",
     tags: "Etiquetas",
     addTag: "Añadir etiqueta",
@@ -65,8 +61,6 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   
   const [formData, setFormData] = useState({
     title: "",
-    category: "",
-    year: "",
     description: "",
     forSale: false,
     price: ""
@@ -141,9 +135,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { title, category, year, description, price, forSale } = formData;
+    const { title, description, price, forSale } = formData;
     
-    if (!title || !category || !year || !previewImage) {
+    if (!title || !previewImage) {
       toast.error(t.error);
       return;
     }
@@ -153,8 +147,6 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     addArtwork({
       title,
       image: previewImage,
-      category,
-      year,
       description,
       tags: tags,
       forSale: forSale,
@@ -166,8 +158,6 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     // Reset form
     setFormData({
       title: "",
-      category: "",
-      year: "",
       description: "",
       forSale: false,
       price: ""
@@ -237,27 +227,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">{t.category}</Label>
-              <Input
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="year">{t.year}</Label>
-              <Input
-                id="year"
-                name="year"
-                value={formData.year}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+        
           </div>
           
           <div className="space-y-2">
