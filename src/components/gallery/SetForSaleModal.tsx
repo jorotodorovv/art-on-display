@@ -85,10 +85,6 @@ const SetForSaleModal: React.FC<SetForSaleModalProps> = ({
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div>
-                <h3 className="font-medium">{artwork.title}</h3>
-                <p className="text-sm text-muted-foreground">{artwork.category}</p>
-              </div>
             </div>
             
             <div className="space-y-2">
