@@ -1,10 +1,10 @@
 import { del } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(
+module.exports = async (
   request: VercelRequest,
   response: VercelResponse,
-) {
+) => {
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -26,7 +26,7 @@ export default async function handler(
     return response.status(200).json({ success: true });
   } catch (error) {
     console.error('Error deleting blob:', error);
-    return response.status(500).json({ 
+    return response.status(500).json({
       error: error instanceof Error ? error.message : 'An unknown error occurred'
     });
   }
