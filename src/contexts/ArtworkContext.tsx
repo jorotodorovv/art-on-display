@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Artwork } from "../types/artwork";
+import { fetchBlobs, deleteBlob } from "../lib/api/blob-service";
 
 // Type for artworks for sale
 export interface ArtworkForSale {
@@ -12,101 +13,98 @@ export interface ArtworkForSale {
   available: boolean;
 }
 
-// Initial artwork data
-const initialArtworks: Artwork[] = [
-  {
-    id: 1,
-    title: "Serene Lake",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-    description: "Acrylic on canvas, 24x36 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }],
-    forSale: false
-  },
-  {
-    id: 2,
-    title: "Abstract Forms",
-    image: "https://images.unsplash.com/photo-1493397212122-2b85dda8106b",
-    description: "Mixed media on paper, 18x24 inches",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "modern", name: "Modern" }],
-    forSale: false
-  },
-  {
-    id: 3,
-    title: "Mountain Vista",
-    image: "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-    description: "Digital print on archival paper, 16x20 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }],
-    forSale: false
-  },
-  {
-    id: 4,
-    title: "Urban Geometry",
-    image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
-    description: "Digital photography, limited edition print",
-    tags: [{ id: "urban", name: "Urban" }, { id: "architecture", name: "Architecture" }],
-    forSale: false
-  },
-  {
-    id: 5,
-    title: "Night Sky",
-    image: "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb",
-    description: "Oil on canvas, 30x40 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "night", name: "Night" }],
-    forSale: true,
-    price: 1200
-  },
-  {
-    id: 6,
-    title: "Forest Lights",
-    image: "https://images.unsplash.com/photo-1500673922987-e212871fec22",
-    description: "Digital photography, archival print",
-    tags: [{ id: "nature", name: "Nature" }, { id: "forest", name: "Forest" }],
-    forSale: false
-  },
-  {
-    id: 7,
-    title: "Geometric Patterns",
-    image: "https://images.unsplash.com/photo-1492321936769-b49830bc1d1e",
-    description: "Digital art, limited edition print",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "geometry", name: "Geometry" }],
-    forSale: true,
-    price: 550
-  },
-  {
-    id: 8,
-    title: "Urban Landscape",
-    image: "https://images.unsplash.com/photo-1527576539890-dfa815648363",
-    description: "Mixed media on canvas, 24x36 inches",
-    tags: [{ id: "urban", name: "Urban" }, { id: "landscape", name: "Landscape" }],
-    forSale: false
-  },
-  {
-    id: 9,
-    title: "Colorful Abstract",
-    image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
-    description: "Acrylic on canvas, 18x24 inches",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "colorful", name: "Colorful" }],
-    forSale: false
-  }
-];
-
 interface ArtworkContextType {
   artworks: Artwork[];
   artworksForSale: ArtworkForSale[];
   addArtwork: (artwork: Omit<Artwork, "id">) => void;
   setArtworkForSale: (id: number, price: number) => void;
   getTags: () => { id: string; name: string }[];
+  loading: boolean;
+  error: Error | null;
+  deleteArtwork: (id: number) => Promise<void>;
 }
 
 const ArtworkContext = createContext<ArtworkContextType | undefined>(undefined);
 
 export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
-  const [artworks, setArtworks] = useState<Artwork[]>(initialArtworks);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Fetch artworks from Vercel Blob
+  useEffect(() => {
+    const fetchArtworks = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch blobs from Vercel Blob storage
+        const blobs = await fetchBlobs();
+        
+        // Convert blobs to artwork objects
+        // Note: In a real app, you would fetch additional metadata from a database
+        // For now, we'll create basic artwork objects from the blob data
+        const artworksFromBlobs = blobs.map((blob, index) => {
+          // Extract a title from the pathname
+          const filename = blob.pathname.split('/').pop() || 'Untitled';
+          const title = filename.split('.')[0].replace(/-/g, ' ');
+          
+          return {
+            id: index + 1,
+            title: title.charAt(0).toUpperCase() + title.slice(1), // Capitalize first letter
+            image: blob.url,
+            description: `Uploaded on ${blob.uploadedAt.toLocaleDateString()}`,
+            tags: [{ id: "uploaded", name: "Uploaded" }],
+            forSale: false,
+            // Store the original blob URL to use for deletion later
+            blobUrl: blob.url
+          };
+        });
+        
+        setArtworks(artworksFromBlobs);
+      } catch (err) {
+        console.error("Failed to fetch artworks:", err);
+        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArtworks();
+  }, []);
 
   // Add new artwork
   const addArtwork = (artwork: Omit<Artwork, "id">) => {
-    const newId = Math.max(0, ...artworks.map(a => a.id)) + 1;
+    const newId = artworks.length > 0 
+      ? Math.max(...artworks.map(a => a.id)) + 1 
+      : 1;
     setArtworks([...artworks, { ...artwork, id: newId }]);
+  };
+
+  // Delete artwork
+  const deleteArtwork = async (id: number) => {
+    const artwork = artworks.find(a => a.id === id);
+    if (!artwork) {
+      throw new Error('Artwork not found');
+    }
+    
+    try {
+      // Delete the blob from Vercel Blob storage
+      // This assumes the artwork has a blobUrl property
+      if ('blobUrl' in artwork) {
+        await deleteBlob(artwork.blobUrl as string);
+      } else {
+        await deleteBlob(artwork.image);
+      }
+      
+      // Remove the artwork from state
+      setArtworks(currentArtworks => 
+        currentArtworks.filter(a => a.id !== id)
+      );
+    } catch (error) {
+      console.error('Error deleting artwork:', error);
+      throw error;
+    }
   };
 
   // Set artwork for sale
@@ -149,7 +147,10 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
       artworksForSale,
       addArtwork, 
       setArtworkForSale,
-      getTags 
+      getTags,
+      loading,
+      error,
+      deleteArtwork
     }}>
       {children}
     </ArtworkContext.Provider>

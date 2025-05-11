@@ -1,8 +1,4 @@
-// This file should be placed in the `api` directory at the root of your project
-// for Vercel to deploy it as a serverless function.
-// e.g., /api/blob-upload.ts
-
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import { handleUpload } from '@vercel/blob/client';
 import type { VercelRequest, VercelResponse } from '@vercel/node'; // For Vercel Serverless Functions
 
 export default async function handler(

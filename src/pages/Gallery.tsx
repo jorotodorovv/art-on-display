@@ -1,152 +1,138 @@
 
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/components/LanguageToggle";
 import { useArtworks } from "../contexts/ArtworkContext";
-import { useAuth } from "../contexts/AuthContext";
-import { Artwork } from "@/types/artwork";
+import ArtworkGrid from "../components/gallery/ArtworkGrid";
+import FilterBar from "../components/gallery/FilterBar";
+import { useLanguage } from "../components/LanguageToggle";
+import { Artwork } from "../types/artwork";
+import { Spinner } from "../components/ui/spinner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import ArtworkGrid from "@/components/gallery/ArtworkGrid";
 import ArtworkDetail from "@/components/gallery/ArtworkDetail";
 import UploadArtworkModal from "@/components/gallery/UploadArtworkModal";
 import SetForSaleModal from "@/components/gallery/SetForSaleModal";
 
+
 const translations = {
   en: {
     title: "Gallery",
-    allCategories: "All",
-    allTags: "All Tags",
-    noArtworks: "No artworks found.",
+    noArtworks: "No artworks found",
+    loading: "Loading artworks...",
+    error: "Error loading artworks",
     uploadArtwork: "Upload Artwork"
   },
   bg: {
-    title: "Galería",
-    allCategories: "Todos",
-    allTags: "Todas las Etiquetas",
-    noArtworks: "No se encontraron obras.",
-    uploadArtwork: "Subir Obra"
+    title: "Галерия",
+    noArtworks: "Няма намерени произведения",
+    loading: "Зареждане на произведения...",
+    error: "Грешка при зареждане на произведения",
+    uploadArtwork: "Закачи Произведение"
   }
 };
 
 const Gallery = () => {
-  const { language } = useLanguage();
-  const { artworks } = useArtworks();
+  const { artworks, loading, error } = useArtworks();
   const { isAuthenticated } = useAuth();
-  const t = translations[language];
-  
-  const [loaded, setLoaded] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>(artworks);
+  const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [visibleArtwork, setVisibleArtwork] = useState<Artwork | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isForSaleModalOpen, setIsForSaleModalOpen] = useState(false);
   const [selectedForSaleArtwork, setSelectedForSaleArtwork] = useState<Artwork | null>(null);
-  
-  // Get unique tags
-  const tags = [...new Set(artworks.flatMap(artwork => artwork.tags.map(tag => tag.id)))];
-  const tagObjects = tags.map(tagId => {
-    const foundTag = artworks.flatMap(artwork => artwork.tags).find(tag => tag.id === tagId);
-    return foundTag || { id: tagId, name: tagId };
-  });
-  
+
+  const { language } = useLanguage();
+  const t = translations[language];
+
   useEffect(() => {
-    setLoaded(true);
-    
-    // Filter artworks based on selected category and tag
-    let filtered = [...artworks];
-    
-    if (selectedTag) {
-      filtered = filtered.filter(artwork => 
-        artwork.tags.some(tag => tag.id === selectedTag)
+    if (selectedTags.length === 0) {
+      setFilteredArtworks(artworks);
+    } else {
+      setFilteredArtworks(
+        artworks.filter(artwork =>
+          artwork.tags.some(tag => selectedTags.includes(tag.id))
+        )
       );
     }
-    
-    setFilteredArtworks(filtered);
-  }, [selectedCategory, selectedTag, artworks]);
-  
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category === "All" ? null : category);
+  }, [artworks, selectedTags]);
+
+  const handleTagSelect = (tagId: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    );
   };
-  
-  const handleTagSelect = (tagId: string | null) => {
-    setSelectedTag(tagId);
-  };
-  
+
   const openArtworkDetail = (artwork: Artwork) => {
     setVisibleArtwork(artwork);
   };
-  
+
   const closeArtworkDetail = () => {
     setVisibleArtwork(null);
   };
-  
+
   const handleSetForSale = (artwork: Artwork) => {
     setSelectedForSaleArtwork(artwork);
     setVisibleArtwork(null);
     setIsForSaleModalOpen(true);
   };
-  
-  return (
-    <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-between w-full mb-6">
-          <h1 className="text-3xl font-bold">{t.title}</h1>
-          
-          {isAuthenticated && (
-            <Button 
-              onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-2"
-              size="sm"
-            >
-              <Plus className="h-4 w-4" />
-              {t.uploadArtwork}
-            </Button>
-          )}
-        </div>
-      
-        
-        <div className="flex flex-wrap gap-2 justify-center mb-8">
-          <Badge
-            variant={selectedTag === null ? "default" : "outline"}
-            className="cursor-pointer hover-scale"
-            onClick={() => handleTagSelect(null)}
-          >
-            {t.allTags}
-          </Badge>
-          {tagObjects.map((tag) => (
-            <Badge 
-              key={tag.id} 
-              variant={selectedTag === tag.id ? "secondary" : "outline"} 
-              className="cursor-pointer hover-scale"
-              onClick={() => handleTagSelect(tag.id)}
-            >
-              {tag.name}
-            </Badge>
-          ))}
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 flex flex-col items-center justify-center min-h-[50vh]">
+        <Spinner size="lg" />
+        <p className="mt-4 text-muted-foreground">{t.loading}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+        <div className="p-4 bg-destructive/10 text-destructive rounded-md">
+          {t.error}: {error.message}
         </div>
       </div>
-      
-      <ArtworkGrid 
-        artworks={filteredArtworks} 
-        onArtworkClick={openArtworkDetail} 
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
+      {isAuthenticated && (
+        <Button
+          onClick={() => setIsUploadModalOpen(true)}
+          className="flex items-center gap-2"
+          size="sm"
+        >
+          <Plus className="h-4 w-4" />
+          {t.uploadArtwork}
+        </Button>
+      )}
+      <FilterBar
+        selectedTags={selectedTags}
+        onTagSelect={handleTagSelect}
+      />
+      <ArtworkGrid
+        artworks={filteredArtworks}
+        onArtworkClick={openArtworkDetail}
         noArtworksMessage={t.noArtworks}
       />
-      
       {visibleArtwork && (
-        <ArtworkDetail 
-          artwork={visibleArtwork} 
+        <ArtworkDetail
+          artwork={visibleArtwork}
           onClose={closeArtworkDetail}
           onSetForSale={isAuthenticated ? handleSetForSale : undefined}
         />
       )}
-      
-      <UploadArtworkModal 
-        open={isUploadModalOpen} 
-        onOpenChange={setIsUploadModalOpen} 
+
+      <UploadArtworkModal
+        open={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
       />
-      
+
       <SetForSaleModal
         open={isForSaleModalOpen}
         onOpenChange={setIsForSaleModalOpen}
