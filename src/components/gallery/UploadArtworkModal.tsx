@@ -16,6 +16,8 @@ import { toast } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, FileImage } from "lucide-react";
+// Import the updated mutation hook
+import { useUploadFileMutation } from '@/lib/api/upload';
 
 const translations = {
   en: {
@@ -30,7 +32,10 @@ const translations = {
     success: "Artwork uploaded successfully",
     error: "Please fill in all required fields",
     dragHere: "Drag image here or click to browse",
-    tagPlaceholder: "Enter a tag..."
+    tagPlaceholder: "Enter a tag...",
+    uploadError: "Failed to upload image. Please try again.",
+    uploadingStatus: "Uploading image...",
+    uploadGenericError: "An error occurred during upload.",
   },
   bg: {
     title: "Subir Obra",
@@ -44,7 +49,10 @@ const translations = {
     success: "Obra subida exitosamente",
     error: "Por favor completa todos los campos requeridos",
     dragHere: "Arrastra la imagen aquí o haz clic para explorar",
-    tagPlaceholder: "Introduce una etiqueta..."
+    tagPlaceholder: "Introduce una etiqueta...",
+    uploadError: "Грешка при качване на изображението. Моля, опитайте отново.",
+    uploadingStatus: "Качване на изображение...",
+    uploadGenericError: "Възникна грешка по време на качването.",
   }
 };
 
@@ -59,6 +67,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const t = translations[language];
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Use the new mutation hook
+  const uploadMutation = useUploadFileMutation();
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -132,41 +143,73 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     setTags(prevTags => prevTags.filter(tag => tag.id !== tagId));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const { title, description, price, forSale } = formData;
     
-    if (!title || !previewImage) {
-      toast.error(t.error);
+    if (!title) {
+      toast.error(t.error + " (Title is missing)");
+      return;
+    }
+
+    if (!imageFile) {
+      toast.error(t.uploadError + " (No image file selected)");
       return;
     }
     
-    // In a real application, you would upload the image to a server/storage
-    // For demo purposes, we'll use the data URL directly
-    addArtwork({
-      title,
-      image: previewImage,
-      description,
-      tags: tags,
-      forSale: forSale,
-      price: forSale ? Number(price) : undefined
-    });
-    
-    toast.success(t.success);
-    
-    // Reset form
-    setFormData({
-      title: "",
-      description: "",
-      forSale: false,
-      price: ""
-    });
-    setTags([]);
-    setPreviewImage(null);
-    setImageFile(null);
-    
-    onOpenChange(false);
+    try {
+      toast.info(t.uploadingStatus);
+
+      // Use a unique filename or the original filename.
+      // Consider sanitizing the filename or generating a unique ID.
+      const filename = imageFile.name;
+
+      // Call the mutation
+      const blobResult = await uploadMutation.mutateAsync({
+        file: imageFile,
+        filename: filename, // This will be sent to your /api/blob-upload route
+      });
+
+      if (!blobResult || !blobResult.url) {
+        console.error("Vercel Blob upload did not return a valid URL:", blobResult);
+        throw new Error(t.uploadError + " (Invalid response from upload service)");
+      }
+      
+      const uploadedImageUrl = blobResult.url;
+      
+      addArtwork({
+        title,
+        image: uploadedImageUrl, // Use the URL from Vercel Blob
+        description,
+        tags: tags,
+        forSale: forSale,
+        price: forSale ? Number(price) : undefined
+      });
+      
+      toast.success(t.success);
+      
+      // Reset form
+      setFormData({
+        title: "",
+        description: "",
+        forSale: false,
+        price: ""
+      });
+      setTags([]);
+      setPreviewImage(null);
+      setImageFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""; // Clear the file input
+      }
+      
+      onOpenChange(false);
+
+    } catch (error) {
+      console.error("Upload failed:", error);
+      const errorMessage = error instanceof Error ? error.message : t.uploadGenericError;
+      toast.error(errorMessage);
+    }
   };
   
   return (
