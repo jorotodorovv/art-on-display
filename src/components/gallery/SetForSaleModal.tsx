@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useArtworks } from "@/contexts/ArtworkContext";
-import { useLanguage } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Artwork } from "@/types/artwork";
 import { toast } from "@/components/ui/sonner";
 import { DollarSign } from "lucide-react";
@@ -80,7 +80,7 @@ const SetForSaleModal: React.FC<SetForSaleModalProps> = ({
             <div className="flex items-center space-x-4">
               <div className="h-24 w-24 rounded overflow-hidden">
                 <img 
-                  src={artwork.image} 
+                  src={artwork.blob_url} 
                   alt={artwork.title} 
                   className="h-full w-full object-cover"
                 />

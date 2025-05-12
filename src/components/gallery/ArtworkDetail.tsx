@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { X, DollarSign, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useArtworks } from "@/contexts/ArtworkContext";
 import { toast } from "@/components/ui/sonner";
 
@@ -46,7 +46,7 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
       <div className="bg-background max-w-3xl w-full rounded-lg shadow-lg overflow-hidden animate-scale-in">
         <div className="relative">
           <img 
-            src={artwork.image} 
+            src={artwork.blob_url} 
             alt={artwork.title} 
             className="w-full h-64 sm:h-80 object-cover"
           />

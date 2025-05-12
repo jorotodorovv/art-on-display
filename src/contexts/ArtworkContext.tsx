@@ -7,7 +7,7 @@ import { fetchBlobs, deleteBlob } from "../lib/api/blob-service";
 export interface ArtworkForSale {
   id: number;
   title: string;
-  image: string;
+  blob_url: string;
   price: number;
   description: string;
   available: boolean;
@@ -93,8 +93,6 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
       // This assumes the artwork has a blobUrl property
       if ('blobUrl' in artwork) {
         await deleteBlob(artwork.blobUrl as string);
-      } else {
-        await deleteBlob(artwork.image);
       }
       
       // Remove the artwork from state
@@ -135,9 +133,9 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     .map(artwork => ({
       id: artwork.id,
       title: artwork.title,
-      image: artwork.image,
       price: artwork.price || 0,
       description: artwork.description,
+      blob_url: artwork.blob_url,
       available: true
     }));
 

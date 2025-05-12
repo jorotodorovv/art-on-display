@@ -1,5 +1,7 @@
 import { handleUpload } from '@vercel/blob/client';
-import type { VercelRequest, VercelResponse } from '@vercel/node'; // For Vercel Serverless Functions
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { supabase } from './supabase';
+import { authenticateUser } from './auth';
 
 export default async function handler(
   request: VercelRequest,
@@ -16,18 +18,34 @@ export default async function handler(
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         // Add authentication and authorization checks here
-        // if (!isAuthenticated(request)) {
-        //   throw new Error('Unauthorized');
-        // }
-
-        // You can use clientPayload to receive additional data from the client
-        // like post IDs, user IDs, etc.
-
-        return {
-          allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-          // Optional: modify the pathname if needed
-          pathname: `artworks/${pathname}`,
-        };
+        try {
+          // Use the reusable authentication utility
+          const user = await authenticateUser(request);
+          
+          // Parse client payload if provided
+          let metadata = {};
+          if (clientPayload) {
+            try {
+              metadata = JSON.parse(clientPayload);
+            } catch (e) {
+              console.error('Failed to parse client payload:', e);
+            }
+          }
+          
+          return {
+            allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            // Optional: modify the pathname if needed
+            pathname: `/artworks/${pathname}`,
+            // Store user ID for the onUploadCompleted callback
+            tokenPayload: JSON.stringify({
+              userId: user.id,
+              metadata
+            }),
+          };
+        } catch (error) {
+          console.error('Authentication error:', error);
+          throw new Error('Unauthorized');
+        }
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {
         // This callback is called when the upload is completed
@@ -35,15 +53,45 @@ export default async function handler(
         // Use ngrok or similar to test the full upload flow
 
         console.log('Blob upload completed:', blob);
+        console.log('Token payload:', tokenPayload);
 
         try {
-          // Here you can update your database with the blob URL
-          // For example:
-          // await db.artworks.update({
-          //   where: { id: tokenPayload.artworkId },
-          //   data: { imageUrl: blob.url }
-          // });
+          if (!tokenPayload) {
+            throw new Error('Missing token payload');
+          }
+
+          // Extract metadata from token payload
+          const { metadata = {}, userId } = JSON.parse(tokenPayload);
+          
+          if (!userId) {
+            throw new Error('Missing user ID in token payload');
+          }
+
+          // Create a new artwork entry in Supabase
+          const { data, error } = await supabase
+            .from('artworks')
+            .insert({
+              title: metadata.title || 'Untitled',
+              description: metadata.description || '',
+              price: metadata.price || null,
+              date: metadata.date || new Date().toISOString().split('T')[0],
+              url: blob.url,
+              blob_url: blob.url,
+              user_id: userId,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Supabase error:', error);
+            throw new Error('Failed to store artwork metadata');
+          }
+
+          console.log('Artwork metadata stored:', data);
         } catch (error) {
+          console.error('Database update error:', error);
           throw new Error('Could not update database with the uploaded file');
         }
       },

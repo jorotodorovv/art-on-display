@@ -2,25 +2,40 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import EditableText from "@/components/ui/EditableText";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const [loaded, setLoaded] = useState(false);
+  const { setCurrentPage } = useLanguage();
   
   useEffect(() => {
     setLoaded(true);
-  }, []);
+    setCurrentPage('home');
+  }, [setCurrentPage]);
   
   return (
     <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
       <section className="flex flex-col lg:flex-row gap-8 items-center">
         <div className="flex-1 space-y-6">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            Contemporary Art by<br />
-            <span className="text-primary">ArtistName</span>
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Exploring the boundary between abstract and figurative art through diverse media and techniques.
-          </p>
+          <EditableText
+            contentKey="hero_title"
+            defaultText="Contemporary Art by"
+            as="h1"
+            className="text-4xl md:text-5xl font-bold tracking-tight"
+          />
+          <EditableText
+            contentKey="artist_name"
+            defaultText="ArtistName"
+            as="h2"
+            className="text-primary text-3xl md:text-4xl font-bold"
+          />
+          <EditableText
+            contentKey="hero_description"
+            defaultText="Exploring the boundary between abstract and figurative art through diverse media and techniques."
+            as="p"
+            className="text-lg text-muted-foreground"
+          />
           <div className="flex flex-wrap gap-4">
             <Button asChild className="hover-scale">
               <Link to="/gallery">Browse Gallery</Link>

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useArtworks } from "@/contexts/ArtworkContext";
-import { useLanguage } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -176,11 +176,10 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         throw new Error(t.uploadError + " (Invalid response from upload service)");
       }
       
-      const uploadedImageUrl = blobResult.url;
-      
       addArtwork({
         title,
-        image: uploadedImageUrl, // Use the URL from Vercel Blob
+        blob_url: blobResult.url,
+        date: new Date().toISOString(),
         description,
         tags: tags,
         forSale: forSale,

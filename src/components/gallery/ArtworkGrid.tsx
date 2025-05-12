@@ -2,7 +2,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Artwork } from "@/types/artwork";
-import { useLanguage } from "@/components/LanguageToggle";
 
 interface ArtworkGridProps {
   artworks: Artwork[];
@@ -34,7 +33,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
           <div className="rounded-md overflow-hidden image-hover">
             <img 
               loading="lazy"
-              src={artwork.image} 
+              src={artwork.blob_url} 
               alt={artwork.title} 
               className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
             />

@@ -1,35 +1,14 @@
 
-import React, { useState, createContext, useContext, ReactNode } from "react";
+import React from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-
-type LanguageContextType = {
-  language: "en" | "bg";
-  setLanguage: (lang: "en" | "bg") => void;
-};
-
-const LanguageContext = createContext<LanguageContextType>({
-  language: "en",
-  setLanguage: () => {},
-});
-
-export const useLanguage = () => useContext(LanguageContext);
-
-export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState<"en" | "bg">("en");
-
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-};
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const LanguageToggle = () => {
   const { language, setLanguage } = useLanguage();
 
   const toggleLanguage = () => {
-    setLanguage(language === "en" ? "bg" : "en");
+    setLanguage(language === "en" ? "bg": "en");
   };
 
   return (

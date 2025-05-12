@@ -1,5 +1,6 @@
 import { del } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { authenticateUser } from './auth';
 
 export default async function handler(
   request: VercelRequest,
@@ -10,15 +11,16 @@ export default async function handler(
   }
 
   try {
-    // In a real app, you would check authentication here
-    // if (!isAuthenticated(request)) {
-    //   return response.status(401).json({ error: 'Unauthorized' });
-    // }
-
     const { url } = request.body;
 
     if (!url || typeof url !== 'string') {
       return response.status(400).json({ error: 'URL is required' });
+    }
+
+    const user = await authenticateUser(request);
+
+    if (!user) {
+      return response.status(401).json({ error: 'Unauthorized' });
     }
 
     await del(url);

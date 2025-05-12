@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useArtworks } from "../contexts/ArtworkContext";
 import ArtworkGrid from "../components/gallery/ArtworkGrid";
 import FilterBar from "../components/gallery/FilterBar";
-import { useLanguage } from "../components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Artwork } from "../types/artwork";
 import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "@/contexts/AuthContext";

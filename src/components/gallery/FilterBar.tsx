@@ -1,7 +1,7 @@
 import React from "react";
 import { useArtworks } from "../../contexts/ArtworkContext";
 import { Badge } from "../ui/badge";
-import { useLanguage } from "../../components/LanguageToggle";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 interface FilterBarProps {
   selectedTags: string[];

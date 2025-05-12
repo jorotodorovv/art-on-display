@@ -11,7 +11,7 @@ import Gallery from "./pages/Gallery";
 import ForSale from "./pages/ForSale";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import { LanguageProvider } from "./components/LanguageToggle";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ArtworkProvider } from "./contexts/ArtworkContext";
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { useArtworks } from "@/contexts/ArtworkContext";
-import { useLanguage } from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const translations = {
   en: {
@@ -82,7 +82,7 @@ const ForSale = () => {
           <div key={artwork.id} className="flex flex-col border rounded-lg overflow-hidden">
             <div className="relative">
               <img 
-                src={artwork.image} 
+                src={artwork.blob_url} 
                 alt={artwork.title} 
                 className="w-full h-64 object-cover"
               />
