@@ -1,18 +1,30 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Artwork } from "@/types/artwork";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, DollarSign } from "lucide-react";
+import { X, DollarSign, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/components/LanguageToggle";
+import { useArtworks } from "@/contexts/ArtworkContext";
+import { toast } from "@/components/ui/sonner";
 
 const translations = {
   en: {
     addToSale: "Add to For Sale",
+    deleteArtwork: "Delete Artwork",
+    deleteConfirm: "Are you sure you want to delete this artwork?",
+    deleting: "Deleting artwork...",
+    deleteSuccess: "Artwork deleted successfully",
+    deleteError: "Failed to delete artwork"
   },
   bg: {
     addToSale: "Añadir a En Venta",
+    deleteArtwork: "Изтрий Произведение",
+    deleteConfirm: "Сигурни ли сте, че искате да изтриете това произведение?",
+    deleting: "Изтриване на произведение...",
+    deleteSuccess: "Произведението е изтрито успешно",
+    deleteError: "Грешка при изтриване на произведение"
   }
 };
 
@@ -25,6 +37,8 @@ interface ArtworkDetailProps {
 const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetForSale }) => {
   const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
+  const { deleteArtwork } = useArtworks();
+  const [isDeleting, setIsDeleting] = useState(false);
   const t = translations[language];
   
   return (
@@ -59,14 +73,43 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
             ))}
           </div>
           
-          {isAuthenticated && onSetForSale && (
-            <div className="mt-6 pt-4 border-t">
+          {isAuthenticated && (
+            <div className="mt-6 pt-4 border-t flex flex-wrap gap-3">
+              {onSetForSale && (
+                <Button 
+                  onClick={() => onSetForSale(artwork)}
+                  className="flex items-center gap-2"
+                >
+                  <DollarSign className="h-4 w-4" />
+                  {t.addToSale}
+                </Button>
+              )}
+              
               <Button 
-                onClick={() => onSetForSale(artwork)}
+                variant="destructive"
+                onClick={async () => {
+                  if (window.confirm(t.deleteConfirm)) {
+                    try {
+                      setIsDeleting(true);
+                      toast.loading(t.deleting);
+                      await deleteArtwork(artwork.id);
+                      toast.dismiss();
+                      toast.success(t.deleteSuccess);
+                      onClose();
+                    } catch (error) {
+                      console.error('Error deleting artwork:', error);
+                      toast.dismiss();
+                      toast.error(t.deleteError);
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }
+                }}
+                disabled={isDeleting}
                 className="flex items-center gap-2"
               >
-                <DollarSign className="h-4 w-4" />
-                {t.addToSale}
+                <Trash2 className="h-4 w-4" />
+                {t.deleteArtwork}
               </Button>
             </div>
           )}
