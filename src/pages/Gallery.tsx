@@ -99,27 +99,35 @@ const Gallery = () => {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-4">{t.title}</h1>
-      {isAuthenticated && (
-        <Button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2"
-          size="sm"
-        >
-          <Plus className="h-4 w-4" />
-          {t.uploadArtwork}
-        </Button>
-      )}
-      <FilterBar
-        selectedTags={selectedTags}
-        onTagSelect={handleTagSelect}
-      />
+    <div className={`space-y-8 animate-fade-in`}>
+      <div className="flex flex-col items-center">
+        <div className="flex items-center justify-between w-full mb-6">
+          <h1 className="text-3xl font-bold">{t.title}</h1>
+
+          {isAuthenticated && (
+            <Button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Plus className="h-4 w-4" />
+              {t.uploadArtwork}
+            </Button>
+          )}
+        </div>
+
+
+        <div className="flex flex-wrap gap-2 justify-center mb-8">
+          <FilterBar selectedTags={selectedTags} onTagSelect={handleTagSelect} />
+        </div>
+      </div>
+
       <ArtworkGrid
         artworks={filteredArtworks}
         onArtworkClick={openArtworkDetail}
         noArtworksMessage={t.noArtworks}
       />
+
       {visibleArtwork && (
         <ArtworkDetail
           artwork={visibleArtwork}
