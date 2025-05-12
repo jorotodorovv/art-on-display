@@ -53,7 +53,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
             id: index + 1,
             title: title.charAt(0).toUpperCase() + title.slice(1), // Capitalize first letter
             image: blob.url,
-            description: `Uploaded on ${blob.uploadedAt?.toLocaleDateString()}`,
+            description: `Uploaded on ${blob.uploadedAt}`,
             tags: [{ id: "uploaded", name: "Uploaded" }],
             forSale: false,
             // Store the original blob URL to use for deletion later
