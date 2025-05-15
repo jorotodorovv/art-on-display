@@ -15,6 +15,7 @@ import { useLanguage } from "@/components/LanguageToggle";
 import { Artwork } from "@/types/artwork";
 import { toast } from "@/components/ui/sonner";
 import { DollarSign } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const translations = {
   en: {
@@ -25,6 +26,7 @@ const translations = {
     success: "Artwork added to For Sale page successfully",
     error: "Please enter a valid price",
     priceLabel: "Enter price in USD",
+    adminOnly: "Only admins can set artwork for sale"
   },
   bg: {
     title: "Añadir a En Venta",
@@ -34,6 +36,7 @@ const translations = {
     success: "Obra añadida a la página En Venta correctamente",
     error: "Por favor ingresa un precio válido",
     priceLabel: "Ingresa el precio en USD",
+    adminOnly: "Solo los administradores pueden poner obras en venta"
   }
 };
 
@@ -50,20 +53,26 @@ const SetForSaleModal: React.FC<SetForSaleModalProps> = ({
 }) => {
   const { setArtworkForSale } = useArtworks();
   const { language } = useLanguage();
+  const { isAdmin } = useAuth();
   const t = translations[language];
   
   const [price, setPrice] = useState("");
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isAdmin) {
+      toast.error(t.adminOnly);
+      onOpenChange(false);
+      return;
+    }
     
     if (!price || isNaN(Number(price)) || Number(price) <= 0 || !artwork) {
       toast.error(t.error);
       return;
     }
     
-    setArtworkForSale(artwork.id, Number(price));
-    toast.success(t.success);
+    await setArtworkForSale(artwork.id, Number(price));
     onOpenChange(false);
     setPrice("");
   };
@@ -87,7 +96,11 @@ const SetForSaleModal: React.FC<SetForSaleModalProps> = ({
               </div>
               <div>
                 <h3 className="font-medium">{artwork.title}</h3>
-                <p className="text-sm text-muted-foreground">{artwork.category}</p>
+                {artwork.tags.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {artwork.tags.map(tag => tag.name).join(", ")}
+                  </p>
+                )}
               </div>
             </div>
             

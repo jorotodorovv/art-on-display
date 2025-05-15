@@ -31,12 +31,11 @@ const translations = {
 
 const Gallery = () => {
   const { language } = useLanguage();
-  const { artworks } = useArtworks();
-  const { isAuthenticated } = useAuth();
+  const { artworks, isLoading } = useArtworks();
+  const { isAuthenticated, isAdmin } = useAuth();
   const t = translations[language];
   
   const [loaded, setLoaded] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>(artworks);
   const [visibleArtwork, setVisibleArtwork] = useState<Artwork | null>(null);
@@ -44,25 +43,19 @@ const Gallery = () => {
   const [isForSaleModalOpen, setIsForSaleModalOpen] = useState(false);
   const [selectedForSaleArtwork, setSelectedForSaleArtwork] = useState<Artwork | null>(null);
   
-  // Get unique categories
-  const categories = ["All", ...new Set(artworks.map(artwork => artwork.category))];
-  
   // Get unique tags
-  const tags = [...new Set(artworks.flatMap(artwork => artwork.tags.map(tag => tag.id)))];
-  const tagObjects = tags.map(tagId => {
-    const foundTag = artworks.flatMap(artwork => artwork.tags).find(tag => tag.id === tagId);
-    return foundTag || { id: tagId, name: tagId };
-  });
+  const tagObjects = artworks
+    .flatMap(artwork => artwork.tags)
+    .filter((tag, index, self) => 
+      index === self.findIndex(t => t.id === tag.id)
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
   
   useEffect(() => {
-    setLoaded(true);
+    setLoaded(!isLoading);
     
-    // Filter artworks based on selected category and tag
+    // Filter artworks based on selected tag
     let filtered = [...artworks];
-    
-    if (selectedCategory && selectedCategory !== "All") {
-      filtered = filtered.filter(artwork => artwork.category === selectedCategory);
-    }
     
     if (selectedTag) {
       filtered = filtered.filter(artwork => 
@@ -71,11 +64,7 @@ const Gallery = () => {
     }
     
     setFilteredArtworks(filtered);
-  }, [selectedCategory, selectedTag, artworks]);
-  
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category === "All" ? null : category);
-  };
+  }, [selectedTag, artworks, isLoading]);
   
   const handleTagSelect = (tagId: string | null) => {
     setSelectedTag(tagId);
@@ -101,7 +90,7 @@ const Gallery = () => {
         <div className="flex items-center justify-between w-full mb-6">
           <h1 className="text-3xl font-bold">{t.title}</h1>
           
-          {isAuthenticated && (
+          {isAdmin && (
             <Button 
               onClick={() => setIsUploadModalOpen(true)}
               className="flex items-center gap-2"
@@ -112,19 +101,7 @@ const Gallery = () => {
             </Button>
           )}
         </div>
-        
-        <div className="flex flex-wrap gap-2 justify-center mb-4">
-          {categories.map((category) => (
-            <Badge 
-              key={category} 
-              variant={selectedCategory === category || (category === "All" && !selectedCategory) ? "default" : "outline"} 
-              className="cursor-pointer hover-scale"
-              onClick={() => handleCategorySelect(category)}
-            >
-              {category}
-            </Badge>
-          ))}
-        </div>
+      
         
         <div className="flex flex-wrap gap-2 justify-center mb-8">
           <Badge
@@ -157,7 +134,7 @@ const Gallery = () => {
         <ArtworkDetail 
           artwork={visibleArtwork} 
           onClose={closeArtworkDetail}
-          onSetForSale={isAuthenticated ? handleSetForSale : undefined}
+          onSetForSale={isAdmin ? handleSetForSale : undefined}
         />
       )}
       

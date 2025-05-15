@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import { LanguageProvider } from "./components/LanguageToggle";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ArtworkProvider } from "./contexts/ArtworkContext";
+import "@/integrations/supabase/storage"; // Import storage setup
 
 const queryClient = new QueryClient();
 

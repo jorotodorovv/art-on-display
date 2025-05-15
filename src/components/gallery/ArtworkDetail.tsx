@@ -50,10 +50,6 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
         </div>
         <div className="p-6">
           <h2 className="text-2xl font-semibold mb-2">{artwork.title}</h2>
-          <div className="flex gap-2 mb-4">
-            <Badge>{artwork.category}</Badge>
-            <Badge variant="outline">{artwork.year}</Badge>
-          </div>
           <p className="text-muted-foreground mb-4">{artwork.description}</p>
           <div className="flex flex-wrap gap-2">
             {artwork.tags.map(tag => (

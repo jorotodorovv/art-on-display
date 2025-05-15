@@ -33,6 +33,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
         >
           <div className="rounded-md overflow-hidden image-hover">
             <img 
+              loading="lazy"
               src={artwork.image} 
               alt={artwork.title} 
               className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
@@ -40,10 +41,6 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
           </div>
           <div className="mt-3">
             <h3 className="font-medium">{artwork.title}</h3>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{artwork.category}</p>
-              <p className="text-sm text-muted-foreground">{artwork.year}</p>
-            </div>
             <div className="flex flex-wrap gap-1 mt-2">
               {artwork.tags.map(tag => (
                 <Badge key={tag.id} variant="outline" className="text-xs">
