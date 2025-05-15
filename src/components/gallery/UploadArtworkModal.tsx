@@ -1,11 +1,11 @@
 
 import React, { useState, useRef } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, FileImage } from "lucide-react";
 // Import the updated mutation hook
 import { useUploadFileMutation } from '@/lib/api/upload';
+import { supabase } from "@/lib/supabase";
 
 const translations = {
   en: {
@@ -66,7 +67,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const { language } = useLanguage();
   const t = translations[language];
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Use the new mutation hook
   const uploadMutation = useUploadFileMutation();
 
@@ -76,21 +77,21 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     forSale: false,
     price: ""
   });
-  
-  const [tags, setTags] = useState<{id: string, name: string}[]>([]);
+
+  const [tags, setTags] = useState<{ id: string, name: string }[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setImageFile(file);
     const reader = new FileReader();
     reader.onload = () => {
@@ -98,20 +99,20 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     };
     reader.readAsDataURL(file);
   };
-  
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
-  
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       setImageFile(file);
-      
+
       const reader = new FileReader();
       reader.onload = () => {
         setPreviewImage(reader.result as string);
@@ -119,35 +120,35 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleAddTag = () => {
     if (tagInput.trim() === "") return;
-    
+
     const newTag = {
       id: tagInput.toLowerCase().replace(/\s+/g, "-"),
       name: tagInput.trim()
     };
-    
+
     setTags(prevTags => [...prevTags, newTag]);
     setTagInput("");
   };
-  
+
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddTag();
     }
   };
-  
+
   const handleRemoveTag = (tagId: string) => {
     setTags(prevTags => prevTags.filter(tag => tag.id !== tagId));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const { title, description, price, forSale } = formData;
-    
+
     if (!title) {
       toast.error(t.error + " (Title is missing)");
       return;
@@ -157,7 +158,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       toast.error(t.uploadError + " (No image file selected)");
       return;
     }
-    
+
     try {
       toast.info(t.uploadingStatus);
 
@@ -165,17 +166,28 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       // Consider sanitizing the filename or generating a unique ID.
       const filename = imageFile.name;
 
+      const { data: { session } } = await supabase.auth.getSession();
+
       // Call the mutation
       const blobResult = await uploadMutation.mutateAsync({
         file: imageFile,
-        filename: filename, // This will be sent to your /api/blob-upload route
+        filename: filename,
+        clientPayload: JSON.stringify({
+          token: session.access_token,
+          metadata: {
+            title: title,
+            description: description,
+            tags: tags.map(tag => tag.name),
+            price: forSale? Number(price) : undefined,
+          }
+        }), // This will be sent to your /api/blob-upload route
       });
 
       if (!blobResult || !blobResult.url) {
         console.error("Vercel Blob upload did not return a valid URL:", blobResult);
         throw new Error(t.uploadError + " (Invalid response from upload service)");
       }
-      
+
       addArtwork({
         title,
         blob_url: blobResult.url,
@@ -185,9 +197,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         forSale: forSale,
         price: forSale ? Number(price) : undefined
       });
-      
+
       toast.success(t.success);
-      
+
       // Reset form
       setFormData({
         title: "",
@@ -201,7 +213,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       if (fileInputRef.current) {
         fileInputRef.current.value = ""; // Clear the file input
       }
-      
+
       onOpenChange(false);
 
     } catch (error) {
@@ -210,16 +222,16 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       toast.error(errorMessage);
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t.title}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div 
+          <div
             className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={handleDragOver}
@@ -256,7 +268,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               className="hidden"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="title">{t.artworkTitle}</Label>
             <Input
@@ -267,11 +279,11 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               required
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
-        
+
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">{t.description}</Label>
             <Textarea
@@ -282,15 +294,15 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               rows={3}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label>{t.tags}</Label>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map(tag => (
                 <Badge key={tag.id} className="flex gap-1 items-center">
                   {tag.name}
-                  <X 
-                    className="h-3 w-3 cursor-pointer" 
+                  <X
+                    className="h-3 w-3 cursor-pointer"
                     onClick={() => handleRemoveTag(tag.id)}
                   />
                 </Badge>
@@ -304,8 +316,8 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
                 placeholder={t.tagPlaceholder}
                 className="flex-1"
               />
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={handleAddTag}
                 size="sm"
                 className="flex-shrink-0"
@@ -316,7 +328,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               </Button>
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t.cancel}

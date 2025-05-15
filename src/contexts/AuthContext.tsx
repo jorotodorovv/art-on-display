@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Check for existing session
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session) {
         const { data: userData } = await supabase
           .from('profiles')
@@ -112,7 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem("authUser");
     toast.success("Successfully logged out");

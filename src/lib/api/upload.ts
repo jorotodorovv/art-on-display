@@ -10,7 +10,7 @@ export interface UploadVariables {
   file: File;
   filename: string; // Vercel Blob needs a pathname for the blob
   // You can add an optional clientPayload string if you want to send extra data to onBeforeGenerateToken
-  // clientPayload?: string;
+  clientPayload?: string;
 }
 
 const performUpload = async (variables: UploadVariables): Promise<UploadResponse> => {
@@ -30,7 +30,7 @@ const performUpload = async (variables: UploadVariables): Promise<UploadResponse
       {
         access: 'public', // The blob will be publicly accessible
         handleUploadUrl: '/api/blob-upload', // The API route you created in step 2
-        // clientPayload: variables.clientPayload, // If you want to send extra data
+        clientPayload: variables.clientPayload, // If you want to send extra data
       }
     );
     return blob;

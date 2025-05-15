@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
-import vercel from 'vite-plugin-vercel';
-import react from "@vitejs/plugin-react-swc";
 import path from "path";
+
+import react from "@vitejs/plugin-react-swc";
+import vercel from 'vite-plugin-vercel';
+
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/

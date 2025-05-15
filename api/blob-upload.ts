@@ -1,7 +1,7 @@
 import { handleUpload } from '@vercel/blob/client';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './supabase';
-import { authenticateUser } from './auth';
+import { supabase } from './supabase.js';
+import { authenticateUser } from './auth.js';
 
 export default async function handler(
   request: VercelRequest,
@@ -19,27 +19,21 @@ export default async function handler(
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         // Add authentication and authorization checks here
         try {
-          // Use the reusable authentication utility
-          const user = await authenticateUser(request);
-          
           // Parse client payload if provided
-          let metadata = {};
-          if (clientPayload) {
-            try {
-              metadata = JSON.parse(clientPayload);
-            } catch (e) {
-              console.error('Failed to parse client payload:', e);
-            }
-          }
-          
+          const { token, metadata } = JSON.parse(clientPayload);
+
+          // Use the reusable authentication utility
+          const user = await authenticateUser(token);
+
           return {
+            addRandomSuffix: true,
             allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             // Optional: modify the pathname if needed
-            pathname: `/artworks/${pathname}`,
+            pathname: `./artworks/${pathname}`,
             // Store user ID for the onUploadCompleted callback
             tokenPayload: JSON.stringify({
               userId: user.id,
-              metadata
+              metadata,
             }),
           };
         } catch (error) {
@@ -52,9 +46,6 @@ export default async function handler(
         // ⚠️ This will not work on `localhost` websites,
         // Use ngrok or similar to test the full upload flow
 
-        console.log('Blob upload completed:', blob);
-        console.log('Token payload:', tokenPayload);
-
         try {
           if (!tokenPayload) {
             throw new Error('Missing token payload');
@@ -62,7 +53,7 @@ export default async function handler(
 
           // Extract metadata from token payload
           const { metadata = {}, userId } = JSON.parse(tokenPayload);
-          
+
           if (!userId) {
             throw new Error('Missing user ID in token payload');
           }
