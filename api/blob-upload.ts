@@ -1,5 +1,7 @@
+import { del } from '@vercel/blob';
 import { handleUpload } from '@vercel/blob/client';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+
 import { supabase } from './supabase.js';
 import { authenticateUser } from './auth.js';
 
@@ -69,6 +71,15 @@ export default async function handler(
 
           if (error) {
             console.error('Supabase error:', error);
+
+            // Delete the blob if the database insert fails
+            try {
+              await del(blob.url);
+              console.log(`Deleted blob ${blob.url} after database insert failure`);
+            } catch (deleteError) {
+              console.error('Failed to delete blob after database error:', deleteError);
+            }
+
             throw new Error('Failed to store artwork metadata');
           }
         } catch (error) {
