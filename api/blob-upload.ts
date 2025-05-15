@@ -19,12 +19,11 @@ export default async function handler(
       body: request.body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        // Add authentication and authorization checks here
-        try {
-          // Parse client payload if provided
-          const { token, metadata } = JSON.parse(clientPayload);
 
-          // Use the reusable authentication utility
+        try {
+
+          const { token, artwork } = JSON.parse(clientPayload);
+
           const user = await authenticateUser(token);
 
           return {
@@ -32,7 +31,7 @@ export default async function handler(
             allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             tokenPayload: JSON.stringify({
               userId: user.id,
-              metadata,
+              artwork,
             }),
           };
         } catch (error) {
@@ -46,8 +45,7 @@ export default async function handler(
             throw new Error('Missing token payload');
           }
 
-          // Extract metadata from token payload
-          const { metadata = {}, userId } = JSON.parse(tokenPayload);
+          const { artwork = {}, userId } = JSON.parse(tokenPayload);
 
           if (!userId) {
             throw new Error('Missing user ID in token payload');
@@ -56,11 +54,11 @@ export default async function handler(
           const { data, error } = await supabase
             .from('artworks')
             .insert({
-              title: metadata.title || 'Untitled',
-              description: metadata.description || '',
-              price: metadata.price || null,
-              tags: metadata.tags || [],
-              date: metadata.date || new Date().toISOString().split('T')[0],
+              title: artwork.title || 'Untitled',
+              description: artwork.description || '',
+              price: artwork.price || null,
+              tags: artwork.tags || [],
+              date: artwork.date || new Date().toISOString().split('T')[0],
               blob_url: blob.url,
               user_id: userId,
               created_at: new Date().toISOString(),
@@ -71,8 +69,6 @@ export default async function handler(
 
           if (error) {
             console.error('Supabase error:', error);
-
-            // Delete the blob if the database insert fails
             try {
               await del(blob.url);
               console.log(`Deleted blob ${blob.url} after database insert failure`);

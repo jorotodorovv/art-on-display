@@ -1,20 +1,24 @@
 import { useMutation, UseMutationOptions } from '@tanstack/react-query';
-import { upload } from '@vercel/blob/client';
 import type { PutBlobResult } from '@vercel/blob';
+import { upload } from '@vercel/blob/client';
 
-// The response from Vercel Blob client upload
-export type UploadResponse = PutBlobResult;
+export type UploadResponse = PutBlobResult & {
+};
 
-// Variables for the mutation: the file and an optional desired filename
 export interface UploadVariables {
   file: File;
-  filename: string; // Vercel Blob needs a pathname for the blob
-  // You can add an optional clientPayload string if you want to send extra data to onBeforeGenerateToken
-  clientPayload?: string;
+  filename: string;
+  token: string;
+  artwork?: {
+    title: string;
+    description: string;
+    tags: string[];
+    price: number;
+  }
 }
 
 const performUpload = async (variables: UploadVariables): Promise<UploadResponse> => {
-  const { file, filename } = variables;
+  const { file, filename, token, artwork } = variables;
 
   if (!file) {
     throw new Error('No file selected for upload.');
@@ -28,18 +32,24 @@ const performUpload = async (variables: UploadVariables): Promise<UploadResponse
       `/artworks/${filename}`,
       file,
       {
-        access: 'public', // The blob will be publicly accessible
-        handleUploadUrl: '/api/blob-upload', // The API route you created in step 2
-        clientPayload: variables.clientPayload, // If you want to send extra data
+        access: 'public',
+        handleUploadUrl: '/api/blob-upload',
+        clientPayload: JSON.stringify({
+          token,
+          artwork
+        }),
       }
     );
-    return blob;
+
+    if (!blob) {
+      throw new Error('Failed to upload image');
+    }
+
+    return blob as UploadResponse;
   } catch (error) {
-    console.error('Vercel Blob upload error:', error);
     const message = error instanceof Error ? error.message : 'Client-side upload failed.';
-    // Try to get a more specific message if the server responded with JSON error
     if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
-        throw new Error(error.message);
+      throw new Error(error.message);
     }
     throw new Error(message);
   }

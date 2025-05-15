@@ -170,15 +170,13 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       const blobResult = await uploadMutation.mutateAsync({
         file: imageFile,
         filename: filename,
-        clientPayload: JSON.stringify({
-          token: user.access_token,
-          metadata: {
-            title: title,
-            description: description,
-            tags: tags.map(tag => tag.name),
-            price: forSale ? Number(price) : undefined,
-          }
-        }), // This will be sent to your /api/blob-upload route
+        token: user.access_token,
+        artwork: {
+          title: title,
+          description: description,
+          tags: tags.map(tag => tag.name),
+          price: forSale ? Number(price) : undefined,
+        }
       });
 
       if (!blobResult || !blobResult.url) {
@@ -205,11 +203,13 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         forSale: false,
         price: ""
       });
+
       setTags([]);
       setPreviewImage(null);
       setImageFile(null);
+      
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; // Clear the file input
+        fileInputRef.current.value = "";
       }
 
       onOpenChange(false);
