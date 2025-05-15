@@ -46,13 +46,13 @@ const translations = {
 const ForSale = () => {
   const [loaded, setLoaded] = useState(false);
   const { toast } = useToast();
-  const { artworksForSale } = useArtworks();
+  const { artworksForSale, isLoading } = useArtworks();
   const { language } = useLanguage();
   const t = translations[language];
   
   useEffect(() => {
-    setLoaded(true);
-  }, []);
+    setLoaded(!isLoading);
+  }, [isLoading]);
   
   const handleInquire = (title: string) => {
     toast({
@@ -94,7 +94,6 @@ const ForSale = () => {
             </div>
             <div className="p-5 flex flex-col flex-grow">
               <h3 className="text-xl font-semibold mb-1">{artwork.title}</h3>
-              <p className="text-sm text-muted-foreground mb-2">{artwork.category}</p>
               <p className="mb-3">{artwork.description}</p>
               <div className="mt-auto pt-4 flex items-center justify-between">
                 <p className="text-lg font-medium">{formatPrice(artwork.price)}</p>

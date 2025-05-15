@@ -1,6 +1,9 @@
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Artwork } from "../types/artwork";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { Artwork, ArtworkTag } from "../types/artwork";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
+import { useAuth } from "./AuthContext";
 
 // Type for artworks for sale
 export interface ArtworkForSale {
@@ -12,123 +15,192 @@ export interface ArtworkForSale {
   available: boolean;
 }
 
-// Initial artwork data
-const initialArtworks: Artwork[] = [
-  {
-    id: 1,
-    title: "Serene Lake",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-    description: "Acrylic on canvas, 24x36 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }],
-    forSale: false
-  },
-  {
-    id: 2,
-    title: "Abstract Forms",
-    image: "https://images.unsplash.com/photo-1493397212122-2b85dda8106b",
-    description: "Mixed media on paper, 18x24 inches",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "modern", name: "Modern" }],
-    forSale: false
-  },
-  {
-    id: 3,
-    title: "Mountain Vista",
-    image: "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-    description: "Digital print on archival paper, 16x20 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "landscape", name: "Landscape" }],
-    forSale: false
-  },
-  {
-    id: 4,
-    title: "Urban Geometry",
-    image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
-    description: "Digital photography, limited edition print",
-    tags: [{ id: "urban", name: "Urban" }, { id: "architecture", name: "Architecture" }],
-    forSale: false
-  },
-  {
-    id: 5,
-    title: "Night Sky",
-    image: "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb",
-    description: "Oil on canvas, 30x40 inches",
-    tags: [{ id: "nature", name: "Nature" }, { id: "night", name: "Night" }],
-    forSale: true,
-    price: 1200
-  },
-  {
-    id: 6,
-    title: "Forest Lights",
-    image: "https://images.unsplash.com/photo-1500673922987-e212871fec22",
-    description: "Digital photography, archival print",
-    tags: [{ id: "nature", name: "Nature" }, { id: "forest", name: "Forest" }],
-    forSale: false
-  },
-  {
-    id: 7,
-    title: "Geometric Patterns",
-    image: "https://images.unsplash.com/photo-1492321936769-b49830bc1d1e",
-    description: "Digital art, limited edition print",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "geometry", name: "Geometry" }],
-    forSale: true,
-    price: 550
-  },
-  {
-    id: 8,
-    title: "Urban Landscape",
-    image: "https://images.unsplash.com/photo-1527576539890-dfa815648363",
-    description: "Mixed media on canvas, 24x36 inches",
-    tags: [{ id: "urban", name: "Urban" }, { id: "landscape", name: "Landscape" }],
-    forSale: false
-  },
-  {
-    id: 9,
-    title: "Colorful Abstract",
-    image: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
-    description: "Acrylic on canvas, 18x24 inches",
-    tags: [{ id: "abstract", name: "Abstract" }, { id: "colorful", name: "Colorful" }],
-    forSale: false
-  }
-];
-
 interface ArtworkContextType {
   artworks: Artwork[];
   artworksForSale: ArtworkForSale[];
-  addArtwork: (artwork: Omit<Artwork, "id">) => void;
-  setArtworkForSale: (id: number, price: number) => void;
-  getTags: () => { id: string; name: string }[];
+  addArtwork: (artwork: Omit<Artwork, "id" | "tags"> & { tags: string[] }) => Promise<void>;
+  setArtworkForSale: (id: number, price: number) => Promise<void>;
+  getTags: () => Promise<ArtworkTag[]>;
+  isLoading: boolean;
 }
 
 const ArtworkContext = createContext<ArtworkContextType | undefined>(undefined);
 
 export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
-  const [artworks, setArtworks] = useState<Artwork[]>(initialArtworks);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [tags, setTags] = useState<ArtworkTag[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, session } = useAuth();
+
+  // Fetch all artworks from Supabase
+  const fetchArtworks = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data: artworksData, error: artworksError } = await supabase
+        .from('artworks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (artworksError) {
+        toast.error("Failed to fetch artworks");
+        console.error("Error fetching artworks:", artworksError);
+        return;
+      }
+
+      // Fetch all tags from Supabase
+      const { data: tagsData, error: tagsError } = await supabase
+        .from('tags')
+        .select('*');
+
+      if (tagsError) {
+        toast.error("Failed to fetch tags");
+        console.error("Error fetching tags:", tagsError);
+        return;
+      }
+
+      // Fetch artwork_tags relationships
+      const { data: artworkTagsData, error: artworkTagsError } = await supabase
+        .from('artwork_tags')
+        .select('*');
+
+      if (artworkTagsError) {
+        toast.error("Failed to fetch artwork tags");
+        console.error("Error fetching artwork tags:", artworkTagsError);
+        return;
+      }
+
+      // Convert tags data to ArtworkTag[]
+      const tagsMap = tagsData.reduce((acc: Record<string, ArtworkTag>, tag) => {
+        acc[tag.id] = { id: tag.id, name: tag.name };
+        return acc;
+      }, {});
+
+      setTags(tagsData.map(tag => ({ id: tag.id, name: tag.name })));
+
+      // Map artwork_tags relationships to artworks
+      const artworksWithTags = artworksData.map((artwork) => {
+        const artworkTags = artworkTagsData
+          .filter(at => at.artwork_id === artwork.id)
+          .map(at => tagsMap[at.tag_id])
+          .filter(Boolean);
+
+        return {
+          ...artwork,
+          tags: artworkTags,
+        };
+      });
+
+      setArtworks(artworksWithTags);
+    } catch (error) {
+      console.error("Error in fetchArtworks:", error);
+      toast.error("Failed to load artworks");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchArtworks();
+  }, []);
+
+  // Refetch when auth state changes
+  useEffect(() => {
+    if (session) {
+      fetchArtworks();
+    }
+  }, [session]);
 
   // Add new artwork
-  const addArtwork = (artwork: Omit<Artwork, "id">) => {
-    const newId = Math.max(0, ...artworks.map(a => a.id)) + 1;
-    setArtworks([...artworks, { ...artwork, id: newId }]);
+  const addArtwork = async (artwork: Omit<Artwork, "id" | "tags"> & { tags: string[] }) => {
+    try {
+      // Insert the artwork
+      const { data: newArtwork, error: artworkError } = await supabase
+        .from('artworks')
+        .insert({
+          title: artwork.title,
+          image: artwork.image,
+          description: artwork.description,
+          for_sale: artwork.forSale || false,
+          price: artwork.price || null,
+        })
+        .select()
+        .single();
+
+      if (artworkError) {
+        toast.error("Failed to add artwork");
+        console.error("Error adding artwork:", artworkError);
+        return;
+      }
+
+      // Insert artwork-tag relationships
+      if (artwork.tags.length > 0) {
+        const artworkTags = artwork.tags.map(tagId => ({
+          artwork_id: newArtwork.id,
+          tag_id: tagId
+        }));
+
+        const { error: tagsError } = await supabase
+          .from('artwork_tags')
+          .insert(artworkTags);
+
+        if (tagsError) {
+          toast.error("Failed to add artwork tags");
+          console.error("Error adding artwork tags:", tagsError);
+          // We still continue as the artwork was created
+        }
+      }
+
+      // Refresh artworks
+      fetchArtworks();
+      toast.success("Artwork added successfully");
+    } catch (error) {
+      console.error("Error in addArtwork:", error);
+      toast.error("Failed to add artwork");
+    }
   };
 
   // Set artwork for sale
-  const setArtworkForSale = (id: number, price: number) => {
-    setArtworks(currentArtworks => 
-      currentArtworks.map(artwork => 
-        artwork.id === id 
-          ? { ...artwork, forSale: true, price } 
-          : artwork
-      )
-    );
+  const setArtworkForSale = async (id: number, price: number) => {
+    try {
+      const { error } = await supabase
+        .from('artworks')
+        .update({ for_sale: true, price })
+        .eq('id', id);
+
+      if (error) {
+        toast.error("Failed to update artwork");
+        console.error("Error updating artwork:", error);
+        return;
+      }
+
+      // Refresh artworks
+      fetchArtworks();
+      toast.success("Artwork added to For Sale successfully");
+    } catch (error) {
+      console.error("Error in setArtworkForSale:", error);
+      toast.error("Failed to update artwork");
+    }
   };
 
-  // Get unique tags from all artworks
-  const getTags = () => {
-    const tagsMap = new Map();
-    artworks.forEach(artwork => {
-      artwork.tags.forEach(tag => {
-        tagsMap.set(tag.id, tag);
-      });
-    });
-    return Array.from(tagsMap.values());
+  // Get tags
+  const getTags = async (): Promise<ArtworkTag[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*');
+
+      if (error) {
+        console.error("Error fetching tags:", error);
+        return [];
+      }
+
+      return data.map(tag => ({ id: tag.id, name: tag.name }));
+    } catch (error) {
+      console.error("Error in getTags:", error);
+      return [];
+    }
   };
 
   // Generate artworks for sale from regular artworks
@@ -149,7 +221,8 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
       artworksForSale,
       addArtwork, 
       setArtworkForSale,
-      getTags 
+      getTags,
+      isLoading 
     }}>
       {children}
     </ArtworkContext.Provider>

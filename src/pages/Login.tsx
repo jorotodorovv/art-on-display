@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,43 +7,90 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/components/LanguageToggle";
 import { toast } from "@/components/ui/sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const translations = {
   en: {
-    title: "Admin Login",
+    title: "Authentication",
     email: "Email",
     password: "Password",
     login: "Login",
-    error: "Invalid email or password"
+    signup: "Sign Up",
+    confirmPassword: "Confirm Password",
+    loginTab: "Login",
+    signupTab: "Sign Up",
+    passwordsMismatch: "Passwords do not match",
+    demoLoginTitle: "Demo Account",
+    registerSuccess: "Registration successful! Please check your email."
   },
   bg: {
-    title: "Inicio de Sesión Admin",
+    title: "Autenticación",
     email: "Correo",
     password: "Contraseña",
     login: "Iniciar Sesión",
-    error: "Correo o contraseña inválidos"
+    signup: "Registrarse",
+    confirmPassword: "Confirmar Contraseña",
+    loginTab: "Iniciar Sesión",
+    signupTab: "Registrarse",
+    passwordsMismatch: "Las contraseñas no coinciden",
+    demoLoginTitle: "Cuenta Demo",
+    registerSuccess: "¡Registro exitoso! Por favor, revisa tu correo."
   }
 };
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language];
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("login");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Redirect if already authenticated
+    if (isAuthenticated) {
+      navigate("/gallery");
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
       await login(email, password);
-      navigate("/gallery"); // Redirect to gallery instead of admin
+      // The auth state listener will handle the redirect
     } catch (error) {
-      toast.error(t.error);
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast.error(t.passwordsMismatch);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      await signup(email, password);
+      // Clear the form
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      // Switch to login tab
+      setActiveTab("login");
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -56,38 +103,88 @@ const Login = () => {
           <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
         </div>
         
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="email">{t.email}</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">{t.loginTab}</TabsTrigger>
+            <TabsTrigger value="signup">{t.signupTab}</TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-2">
-            <Label htmlFor="password">{t.password}</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <TabsContent value="login">
+            <form className="space-y-6" onSubmit={handleLogin}>
+              <div className="space-y-2">
+                <Label htmlFor="login-email">{t.email}</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="login-password">{t.password}</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <Button type="submit" className="w-full hover-scale" disabled={isLoading}>
+                {isLoading ? "Loading..." : t.login}
+              </Button>
+            </form>
+            
+            <div className="text-center text-sm text-muted-foreground mt-4">
+              {/* For development purposes only */}
+              <p className="text-xs text-muted-foreground">{t.demoLoginTitle}: admin@example.com / password</p>
+            </div>
+          </TabsContent>
           
-          <Button type="submit" className="w-full hover-scale" disabled={isLoading}>
-            {isLoading ? "Loading..." : t.login}
-          </Button>
-        </form>
-        
-        <div className="text-center text-sm text-muted-foreground mt-4">
-          {/* For development purposes only */}
-          <p>Demo: admin@example.com / password</p>
-        </div>
+          <TabsContent value="signup">
+            <form className="space-y-6" onSubmit={handleSignup}>
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">{t.email}</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">{t.password}</Label>
+                <Input
+                  id="signup-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="signup-confirm-password">{t.confirmPassword}</Label>
+                <Input
+                  id="signup-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <Button type="submit" className="w-full hover-scale" disabled={isLoading}>
+                {isLoading ? "Loading..." : t.signup}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -1,50 +1,56 @@
 
-import React, { useState, useRef } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useArtworks } from "@/contexts/ArtworkContext";
 import { useLanguage } from "@/components/LanguageToggle";
-import { toast } from "@/components/ui/sonner";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, FileImage } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
+import { Plus, X, ImagePlus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const translations = {
   en: {
     title: "Upload Artwork",
-    imageUpload: "Upload Image",
     artworkTitle: "Title",
     description: "Description",
+    image: "Image",
     tags: "Tags",
-    addTag: "Add tag",
-    upload: "Upload",
+    addTag: "Add Tag",
+    createTag: "Create New Tag",
     cancel: "Cancel",
-    success: "Artwork uploaded successfully",
-    error: "Please fill in all required fields",
-    dragHere: "Drag image here or click to browse",
-    tagPlaceholder: "Enter a tag..."
+    upload: "Upload",
+    enterTag: "Enter tag name",
+    uploadingImage: "Uploading image...",
+    imageUploadSuccess: "Image uploaded successfully",
+    imageUploadError: "Error uploading image",
+    adminOnly: "Only admins can upload artwork"
   },
   bg: {
     title: "Subir Obra",
-    imageUpload: "Subir Imagen",
     artworkTitle: "Título",
     description: "Descripción",
+    image: "Imagen",
     tags: "Etiquetas",
-    addTag: "Añadir etiqueta",
-    upload: "Subir",
+    addTag: "Añadir Etiqueta",
+    createTag: "Crear Nueva Etiqueta",
     cancel: "Cancelar",
-    success: "Obra subida exitosamente",
-    error: "Por favor completa todos los campos requeridos",
-    dragHere: "Arrastra la imagen aquí o haz clic para explorar",
-    tagPlaceholder: "Introduce una etiqueta..."
+    upload: "Subir",
+    enterTag: "Ingrese nombre de etiqueta",
+    uploadingImage: "Subiendo imagen...",
+    imageUploadError: "Error al subir la imagen",
+    imageUploadSuccess: "Imagen subida exitosamente",
+    adminOnly: "Solo los administradores pueden subir obras"
   }
 };
 
@@ -54,119 +60,180 @@ interface UploadArtworkModalProps {
 }
 
 const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenChange }) => {
-  const { addArtwork } = useArtworks();
+  const { addArtwork, getTags } = useArtworks();
   const { language } = useLanguage();
+  const { isAdmin } = useAuth();
   const t = translations[language];
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    forSale: false,
-    price: ""
-  });
-  
-  const [tags, setTags] = useState<{id: string, name: string}[]>([]);
-  const [tagInput, setTagInput] = useState("");
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<{ id: string; name: string }[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  useEffect(() => {
+    if (open) {
+      loadTags();
+    } else {
+      resetForm();
+    }
+  }, [open]);
+  
+  const loadTags = async () => {
+    const tagsData = await getTags();
+    setAvailableTags(tagsData);
   };
   
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-  
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
       setImageFile(file);
       
+      // Create a preview
       const reader = new FileReader();
       reader.onload = () => {
-        setPreviewImage(reader.result as string);
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
   
-  const handleAddTag = () => {
-    if (tagInput.trim() === "") return;
-    
-    const newTag = {
-      id: tagInput.toLowerCase().replace(/\s+/g, "-"),
-      name: tagInput.trim()
-    };
-    
-    setTags(prevTags => [...prevTags, newTag]);
-    setTagInput("");
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTags(prevTags => {
+      if (prevTags.includes(tagId)) {
+        return prevTags.filter(id => id !== tagId);
+      } else {
+        return [...prevTags, tagId];
+      }
+    });
   };
   
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddTag();
+  const handleAddNewTag = async () => {
+    if (!newTagInput.trim()) return;
+    
+    try {
+      // Create a slug from the tag name
+      const tagId = newTagInput.toLowerCase().replace(/\s+/g, '-');
+      
+      // Check if the tag already exists
+      const existingTag = availableTags.find(tag => tag.id === tagId);
+      if (existingTag) {
+        handleTagToggle(tagId);
+        setNewTagInput("");
+        return;
+      }
+      
+      // Add new tag to the database
+      const { data, error } = await supabase
+        .from('tags')
+        .insert({ id: tagId, name: newTagInput.trim() })
+        .select()
+        .single();
+      
+      if (error) {
+        toast.error("Failed to create tag");
+        console.error("Error creating tag:", error);
+        return;
+      }
+      
+      // Add the new tag to available tags and selected tags
+      setAvailableTags(prev => [...prev, { id: data.id, name: data.name }]);
+      setSelectedTags(prev => [...prev, data.id]);
+      setNewTagInput("");
+      
+    } catch (error) {
+      console.error("Error adding new tag:", error);
+      toast.error("Failed to create tag");
     }
   };
   
-  const handleRemoveTag = (tagId: string) => {
-    setTags(prevTags => prevTags.filter(tag => tag.id !== tagId));
+  const uploadImage = async (file: File): Promise<string> => {
+    setIsUploading(true);
+    try {
+      // Create a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `artwork/${fileName}`;
+      
+      // Upload to Supabase Storage
+      const { error } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Get the public URL
+      const { data } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+      
+      toast.success(t.imageUploadSuccess);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error(t.imageUploadError);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { title, description, price, forSale } = formData;
-    
-    if (!title || !previewImage) {
-      toast.error(t.error);
+    if (!isAdmin) {
+      toast.error(t.adminOnly);
       return;
     }
     
-    // In a real application, you would upload the image to a server/storage
-    // For demo purposes, we'll use the data URL directly
-    addArtwork({
-      title,
-      image: previewImage,
-      description,
-      tags: tags,
-      forSale: forSale,
-      price: forSale ? Number(price) : undefined
-    });
+    if (!imageFile) {
+      toast.error("Please select an image");
+      return;
+    }
     
-    toast.success(t.success);
-    
-    // Reset form
-    setFormData({
-      title: "",
-      description: "",
-      forSale: false,
-      price: ""
-    });
-    setTags([]);
-    setPreviewImage(null);
+    try {
+      setIsUploading(true);
+      
+      // Upload image first
+      let imageUrl: string;
+      try {
+        imageUrl = await uploadImage(imageFile);
+      } catch (error) {
+        return; // Stop if image upload fails
+      }
+      
+      // Add artwork with the image URL
+      await addArtwork({
+        title,
+        description,
+        image: imageUrl,
+        tags: selectedTags
+      });
+      
+      // Close the modal and reset the form
+      onOpenChange(false);
+      resetForm();
+      
+    } catch (error) {
+      console.error("Error submitting artwork:", error);
+      toast.error("Failed to upload artwork");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
     setImageFile(null);
-    
-    onOpenChange(false);
+    setImagePreview("");
+    setSelectedTags([]);
+    setNewTagInput("");
   };
   
   return (
@@ -177,99 +244,99 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div 
-            className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            {previewImage ? (
-              <div className="relative">
-                <img src={previewImage} alt="Preview" className="max-h-48 mx-auto rounded-md" />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="destructive"
-                  className="absolute top-2 right-2 h-6 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewImage(null);
-                    setImageFile(null);
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <div className="py-4 flex flex-col items-center text-muted-foreground">
-                <FileImage className="h-8 w-8 mb-2" />
-                <p>{t.dragHere}</p>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-          </div>
-          
           <div className="space-y-2">
             <Label htmlFor="title">{t.artworkTitle}</Label>
             <Input
               id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               required
             />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-        
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="description">{t.description}</Label>
             <Textarea
               id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
           </div>
           
           <div className="space-y-2">
+            <Label htmlFor="image">{t.image}</Label>
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('image-input')?.click()}
+                className="flex items-center gap-2"
+              >
+                <ImagePlus className="h-4 w-4" />
+                Select Image
+              </Button>
+              <Input
+                id="image-input"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                required={!imagePreview}
+              />
+              {imagePreview && (
+                <div className="relative h-16 w-16 rounded overflow-hidden">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-0 right-0 h-6 w-6"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview("");
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
             <Label>{t.tags}</Label>
             <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map(tag => (
-                <Badge key={tag.id} className="flex gap-1 items-center">
+              {availableTags.map((tag) => (
+                <Badge
+                  key={tag.id}
+                  variant={selectedTags.includes(tag.id) ? "default" : "outline"}
+                  className="cursor-pointer hover-scale"
+                  onClick={() => handleTagToggle(tag.id)}
+                >
                   {tag.name}
-                  <X 
-                    className="h-3 w-3 cursor-pointer" 
-                    onClick={() => handleRemoveTag(tag.id)}
-                  />
                 </Badge>
               ))}
             </div>
+            
             <div className="flex gap-2">
               <Input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagKeyDown}
-                placeholder={t.tagPlaceholder}
-                className="flex-1"
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                placeholder={t.enterTag}
               />
-              <Button 
-                type="button" 
-                onClick={handleAddTag}
+              <Button
+                type="button"
                 size="sm"
-                className="flex-shrink-0"
-                disabled={!tagInput.trim()}
+                variant="outline"
+                onClick={handleAddNewTag}
+                className="flex items-center gap-1"
               >
-                <Plus className="h-4 w-4 mr-1" />
+                <Plus className="h-4 w-4" />
                 {t.addTag}
               </Button>
             </div>
@@ -279,7 +346,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t.cancel}
             </Button>
-            <Button type="submit">{t.upload}</Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? t.uploadingImage : t.upload}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
