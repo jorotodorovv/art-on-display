@@ -25,7 +25,7 @@ const performUpload = async (variables: UploadVariables): Promise<UploadResponse
 
   try {
     const blob = await upload(
-      filename, // This will be the `pathname` argument in `onBeforeGenerateToken` on the server
+      `/artworks/${filename}`,
       file,
       {
         access: 'public', // The blob will be publicly accessible

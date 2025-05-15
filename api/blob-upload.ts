@@ -28,9 +28,6 @@ export default async function handler(
           return {
             addRandomSuffix: true,
             allowedContentTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-            // Optional: modify the pathname if needed
-            pathname: `./artworks/${pathname}`,
-            // Store user ID for the onUploadCompleted callback
             tokenPayload: JSON.stringify({
               userId: user.id,
               metadata,
@@ -42,10 +39,6 @@ export default async function handler(
         }
       },
       onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // This callback is called when the upload is completed
-        // ⚠️ This will not work on `localhost` websites,
-        // Use ngrok or similar to test the full upload flow
-
         try {
           if (!tokenPayload) {
             throw new Error('Missing token payload');
@@ -58,15 +51,14 @@ export default async function handler(
             throw new Error('Missing user ID in token payload');
           }
 
-          // Create a new artwork entry in Supabase
           const { data, error } = await supabase
             .from('artworks')
             .insert({
               title: metadata.title || 'Untitled',
               description: metadata.description || '',
               price: metadata.price || null,
+              tags: metadata.tags || [],
               date: metadata.date || new Date().toISOString().split('T')[0],
-              url: blob.url,
               blob_url: blob.url,
               user_id: userId,
               created_at: new Date().toISOString(),
@@ -79,8 +71,6 @@ export default async function handler(
             console.error('Supabase error:', error);
             throw new Error('Failed to store artwork metadata');
           }
-
-          console.log('Artwork metadata stored:', data);
         } catch (error) {
           console.error('Database update error:', error);
           throw new Error('Could not update database with the uploaded file');

@@ -57,7 +57,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
             tags: [{ id: "uploaded", name: "Uploaded" }],
             forSale: false,
             // Store the original blob URL to use for deletion later
-            blobUrl: blob.url
+            blob_url: blob.url
           };
         });
         

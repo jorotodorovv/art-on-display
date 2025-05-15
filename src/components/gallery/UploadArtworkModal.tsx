@@ -16,9 +16,8 @@ import { toast } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, FileImage } from "lucide-react";
-// Import the updated mutation hook
 import { useUploadFileMutation } from '@/lib/api/upload';
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 const translations = {
   en: {
@@ -67,6 +66,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const { language } = useLanguage();
   const t = translations[language];
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   // Use the new mutation hook
   const uploadMutation = useUploadFileMutation();
@@ -166,19 +166,17 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       // Consider sanitizing the filename or generating a unique ID.
       const filename = imageFile.name;
 
-      const { data: { session } } = await supabase.auth.getSession();
-
       // Call the mutation
       const blobResult = await uploadMutation.mutateAsync({
         file: imageFile,
         filename: filename,
         clientPayload: JSON.stringify({
-          token: session.access_token,
+          token: user.access_token,
           metadata: {
             title: title,
             description: description,
             tags: tags.map(tag => tag.name),
-            price: forSale? Number(price) : undefined,
+            price: forSale ? Number(price) : undefined,
           }
         }), // This will be sent to your /api/blob-upload route
       });

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface User {
   id: string;
   email: string;
+  access_token: string,
   isAdmin: boolean;
 }
 
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser({
           id: session.user.id,
           email: session.user.email!,
+          access_token: session.access_token,
           isAdmin: userData?.is_admin || false
         });
       }
@@ -61,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser({
               id: session.user.id,
               email: session.user.email!,
+              access_token: session.access_token,
               isAdmin: userData?.is_admin || false
             });
           } else {
