@@ -181,6 +181,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
 
       if (!blobResult || !blobResult.url) {
         console.error("Vercel Blob upload did not return a valid URL:", blobResult);
+
         throw new Error(t.uploadError + " (Invalid response from upload service)");
       }
 
@@ -216,7 +217,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
 
     } catch (error) {
       console.error("Upload failed:", error);
+
       const errorMessage = error instanceof Error ? error.message : t.uploadGenericError;
+      
       toast.error(errorMessage);
     }
   };
