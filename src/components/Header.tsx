@@ -4,9 +4,40 @@ import { Instagram, Mail, User, LogOut } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import LanguageToggle from "./LanguageToggle";
 import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { getContentById } from "@/services/contentService";
+import { useLanguage } from "./LanguageToggle";
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
+  const { language } = useLanguage();
+  const [navTexts, setNavTexts] = useState({
+    home: { en: "Home", bg: "Начало" },
+    about: { en: "About", bg: "За Мен" },
+    gallery: { en: "Gallery", bg: "Галерия" },
+    forSale: { en: "For Sale", bg: "За Продажба" },
+    login: { en: "Login", bg: "Вход" }
+  });
+
+  useEffect(() => {
+    async function loadNavTexts() {
+      const homeText = await getContentById("nav-home");
+      const aboutText = await getContentById("nav-about");
+      const galleryText = await getContentById("nav-gallery");
+      const forSaleText = await getContentById("nav-for-sale");
+      const loginText = await getContentById("nav-login");
+
+      setNavTexts({
+        home: homeText || navTexts.home,
+        about: aboutText || navTexts.about,
+        gallery: galleryText || navTexts.gallery,
+        forSale: forSaleText || navTexts.forSale,
+        login: loginText || navTexts.login
+      });
+    }
+
+    loadNavTexts();
+  }, []);
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -30,7 +61,7 @@ const Header = () => {
             }
             end
           >
-            Home
+            {language === "en" ? navTexts.home.en : navTexts.home.bg}
           </NavLink>
           <NavLink 
             to="/about" 
@@ -38,7 +69,7 @@ const Header = () => {
               `art-link text-sm font-medium ${isActive ? 'text-primary after:scale-x-100' : 'text-muted-foreground'}`
             }
           >
-            About
+            {language === "en" ? navTexts.about.en : navTexts.about.bg}
           </NavLink>
           <NavLink 
             to="/gallery" 
@@ -46,7 +77,7 @@ const Header = () => {
               `art-link text-sm font-medium ${isActive ? 'text-primary after:scale-x-100' : 'text-muted-foreground'}`
             }
           >
-            Gallery
+            {language === "en" ? navTexts.gallery.en : navTexts.gallery.bg}
           </NavLink>
           <NavLink 
             to="/for-sale" 
@@ -54,7 +85,7 @@ const Header = () => {
               `art-link text-sm font-medium ${isActive ? 'text-primary after:scale-x-100' : 'text-muted-foreground'}`
             }
           >
-            For Sale
+            {language === "en" ? navTexts.forSale.en : navTexts.forSale.bg}
           </NavLink>
         </nav>
         

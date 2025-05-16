@@ -5,59 +5,66 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { useArtworks } from "@/contexts/ArtworkContext";
 import { useLanguage } from "@/components/LanguageToggle";
-
-const translations = {
-  en: {
-    title: "Artwork For Sale",
-    description: "Browse available original artworks and prints. Contact via email for purchase inquiries or custom commissions.",
-    inquirySent: "Inquiry Sent",
-    inquiryDescription: "We'll contact you about \"{title}\" soon.",
-    sold: "Sold",
-    inquire: "Inquire",
-    commissionsTitle: "Commission Information",
-    commissionsDescription: "I'm available for custom artwork commissions. Please contact me with your ideas and requirements.",
-    process: "Process:",
-    processDetails: "Initial consultation, concept sketches, final artwork creation",
-    timeline: "Timeline:",
-    timelineDetails: "2-4 weeks depending on size and complexity",
-    pricing: "Pricing:",
-    pricingDetails: "Starting at $500, varies based on size and materials",
-    requestCommission: "Request Commission"
-  },
-  bg: {
-    title: "Творби за Продажба",
-    description: "Разгледайте налични оригинални творби и принтове. Свържете се чрез имейл за въпроси за покупка или поръчки.",
-    inquirySent: "Запитването е изпратено",
-    inquiryDescription: "Ще се свържем с вас относно \"{title}\" скоро.",
-    sold: "Продадено",
-    inquire: "Запитване",
-    commissionsTitle: "Информация за Поръчки",
-    commissionsDescription: "Приемам поръчки за персонализирани творби. Моля, свържете се с мен с вашите идеи и изисквания.",
-    process: "Процес:",
-    processDetails: "Първоначална консултация, концептуални скици, създаване на финална творба",
-    timeline: "Време:",
-    timelineDetails: "2-4 седмици в зависимост от размера и сложността",
-    pricing: "Цени:",
-    pricingDetails: "Започват от $500, варират според размера и материалите",
-    requestCommission: "Заявка за Поръчка"
-  }
-};
+import EditableContent from "@/components/admin/EditableContent";
+import { getContentById, saveContent } from "@/services/contentService";
 
 const ForSale = () => {
   const [loaded, setLoaded] = useState(false);
   const { toast } = useToast();
   const { artworksForSale, isLoading } = useArtworks();
   const { language } = useLanguage();
-  const t = translations[language];
+  const [content, setContent] = useState({
+    "for-sale-heading": {
+      en: "Artwork For Sale",
+      bg: "Творби за Продажба"
+    },
+    "for-sale-description": {
+      en: "Browse available original artworks and prints. Contact via email for purchase inquiries or custom commissions.",
+      bg: "Разгледайте налични оригинални творби и принтове. Свържете се чрез имейл за въпроси за покупка или поръчки."
+    }
+  });
   
   useEffect(() => {
     setLoaded(!isLoading);
+    loadContent();
   }, [isLoading]);
+  
+  const loadContent = async () => {
+    try {
+      const loadedContent = { ...content };
+      
+      // Try to load each content piece
+      for (const key of Object.keys(content)) {
+        const data = await getContentById(key);
+        if (data) {
+          loadedContent[key] = data;
+        }
+      }
+      
+      setContent(loadedContent);
+    } catch (error) {
+      console.error("Error loading content:", error);
+    }
+  };
+  
+  const handleContentUpdate = async (id: string, newContent: { en: string; bg: string }) => {
+    const result = await saveContent(id, newContent);
+    
+    if (result) {
+      // Update local state
+      setContent(prev => ({
+        ...prev,
+        [id]: newContent
+      }));
+    }
+    
+    return result;
+  };
   
   const handleInquire = (title: string) => {
     toast({
-      title: t.inquirySent,
-      description: t.inquiryDescription.replace("{title}", title),
+      title: language === "en" ? "Inquiry Sent" : "Запитването е изпратено",
+      description: (language === "en" ? "We'll contact you about \"" : "Ще се свържем с вас относно \"") + title + "\" soon.",
     });
   };
   
@@ -71,10 +78,20 @@ const ForSale = () => {
   return (
     <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
       <div>
-        <h1 className="text-3xl font-bold mb-2">{t.title}</h1>
-        <p className="text-muted-foreground mb-6 max-w-2xl">
-          {t.description}
-        </p>
+        <EditableContent
+          id="for-sale-heading"
+          content={content["for-sale-heading"]}
+          type="heading"
+          onUpdate={(newContent) => handleContentUpdate("for-sale-heading", newContent)}
+          className="text-3xl font-bold mb-2"
+        />
+        <EditableContent
+          id="for-sale-description"
+          content={content["for-sale-description"]}
+          type="paragraph"
+          onUpdate={(newContent) => handleContentUpdate("for-sale-description", newContent)}
+          className="text-muted-foreground mb-6 max-w-2xl"
+        />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -91,9 +108,9 @@ const ForSale = () => {
                   alt={title} 
                   className="w-full h-64 object-cover"
                 />
-                {!artwork.available && (
+                {!artwork.forSale && (
                   <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                    <Badge className="text-lg py-1.5 px-3">{t.sold}</Badge>
+                    <Badge className="text-lg py-1.5 px-3">{language === "en" ? "Sold" : "Продадено"}</Badge>
                   </div>
                 )}
               </div>
@@ -101,13 +118,13 @@ const ForSale = () => {
                 <h3 className="text-xl font-semibold mb-1">{title}</h3>
                 <p className="mb-3">{description}</p>
                 <div className="mt-auto pt-4 flex items-center justify-between">
-                  <p className="text-lg font-medium">{formatPrice(artwork.price)}</p>
+                  <p className="text-lg font-medium">{formatPrice(artwork.price || 0)}</p>
                   <Button 
                     onClick={() => handleInquire(title)} 
-                    disabled={!artwork.available}
+                    disabled={!artwork.forSale}
                     className="hover-scale"
                   >
-                    {artwork.available ? t.inquire : t.sold}
+                    {artwork.forSale ? (language === "en" ? "Inquire" : "Запитване") : (language === "en" ? "Sold" : "Продадено")}
                   </Button>
                 </div>
               </div>
@@ -123,27 +140,27 @@ const ForSale = () => {
       </div>
       
       <div className="mt-12 p-6 bg-muted rounded-lg">
-        <h2 className="text-xl font-semibold mb-4">{t.commissionsTitle}</h2>
+        <h2 className="text-xl font-semibold mb-4">{language === "en" ? "Commission Information" : "Информация за Поръчки"}</h2>
         <p className="mb-4">
-          {t.commissionsDescription}
+          {language === "en" ? "I'm available for custom artwork commissions. Please contact me with your ideas and requirements." : "Приемам поръчки за персонализирани творби. Моля, свържете се с мен с вашите идеи и изисквания."}
         </p>
         <div className="space-y-3">
           <div>
-            <h3 className="font-medium">{t.process}</h3>
-            <p className="text-sm text-muted-foreground">{t.processDetails}</p>
+            <h3 className="font-medium">{language === "en" ? "Process:" : "Процес:"}</h3>
+            <p className="text-sm text-muted-foreground">{language === "en" ? "Initial consultation, concept sketches, final artwork creation" : "Първоначална консултация, концептуални скици, създаване на финална творба"}</p>
           </div>
           <div>
-            <h3 className="font-medium">{t.timeline}</h3>
-            <p className="text-sm text-muted-foreground">{t.timelineDetails}</p>
+            <h3 className="font-medium">{language === "en" ? "Timeline:" : "Време:"}</h3>
+            <p className="text-sm text-muted-foreground">{language === "en" ? "2-4 weeks depending on size and complexity" : "2-4 седмици в зависимост от размера и сложността"}</p>
           </div>
           <div>
-            <h3 className="font-medium">{t.pricing}</h3>
-            <p className="text-sm text-muted-foreground">{t.pricingDetails}</p>
+            <h3 className="font-medium">{language === "en" ? "Pricing:" : "Цени:"}</h3>
+            <p className="text-sm text-muted-foreground">{language === "en" ? "Starting at $500, varies based on size and materials" : "Започват от $500, варират според размера и материалите"}</p>
           </div>
         </div>
         <div className="mt-6">
           <Button asChild className="hover-scale">
-            <a href="mailto:artist@example.com">{t.requestCommission}</a>
+            <a href="mailto:artist@example.com">{language === "en" ? "Request Commission" : "Заявка за Поръчка"}</a>
           </Button>
         </div>
       </div>

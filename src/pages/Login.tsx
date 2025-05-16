@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,41 +7,41 @@ import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/components/LanguageToggle";
 import { toast } from "@/components/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const translations = {
-  en: {
-    title: "Authentication",
-    email: "Email",
-    password: "Password",
-    login: "Login",
-    signup: "Sign Up",
-    confirmPassword: "Confirm Password",
-    loginTab: "Login",
-    signupTab: "Sign Up",
-    passwordsMismatch: "Passwords do not match",
-    demoLoginTitle: "Demo Account",
-    registerSuccess: "Registration successful! Please check your email."
-  },
-  bg: {
-    title: "Autenticación",
-    email: "Correo",
-    password: "Contraseña",
-    login: "Iniciar Sesión",
-    signup: "Registrarse",
-    confirmPassword: "Confirmar Contraseña",
-    loginTab: "Iniciar Sesión",
-    signupTab: "Registrarse",
-    passwordsMismatch: "Las contraseñas no coinciden",
-    demoLoginTitle: "Cuenta Demo",
-    registerSuccess: "¡Registro exitoso! Por favor, revisa tu correo."
-  }
-};
+import { getContentById } from "@/services/contentService";
 
 const Login = () => {
   const { login, signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const t = translations[language];
+  
+  const [translations, setTranslations] = useState({
+    en: {
+      title: "Authentication",
+      email: "Email",
+      password: "Password",
+      login: "Login",
+      signup: "Sign Up",
+      confirmPassword: "Confirm Password",
+      loginTab: "Login",
+      signupTab: "Sign Up",
+      passwordsMismatch: "Passwords do not match",
+      demoLoginTitle: "Demo Account",
+      registerSuccess: "Registration successful! Please check your email."
+    },
+    bg: {
+      title: "Автентикация",
+      email: "Имейл",
+      password: "Парола",
+      login: "Вход",
+      signup: "Регистрация",
+      confirmPassword: "Потвърдете Парола",
+      loginTab: "Вход",
+      signupTab: "Регистрация",
+      passwordsMismatch: "Паролите не съвпадат",
+      demoLoginTitle: "Демо акаунт",
+      registerSuccess: "Регистрацията е успешна! Моля, проверете имейла си."
+    }
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,11 +49,26 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("login");
 
+  const t = language === "en" ? translations.en : translations.bg;
+
   useEffect(() => {
     // Redirect if already authenticated
     if (isAuthenticated) {
       navigate("/gallery");
     }
+    
+    // Load translations from database
+    const loadTranslations = async () => {
+      try {
+        // Try to load translations for login page
+        // Here you would fetch translations for login-specific content
+        // For now, we'll keep using the default translations
+      } catch (error) {
+        console.error("Error loading translations:", error);
+      }
+    };
+    
+    loadTranslations();
   }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
