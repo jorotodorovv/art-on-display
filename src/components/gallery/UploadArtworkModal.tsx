@@ -62,7 +62,7 @@ interface UploadArtworkModalProps {
 const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenChange }) => {
   const { addArtwork, getTags } = useArtworks();
   const { language } = useLanguage();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const t = translations[language];
   
   const [title, setTitle] = useState("");
@@ -83,8 +83,13 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   }, [open]);
   
   const loadTags = async () => {
-    const tagsData = await getTags();
-    setAvailableTags(tagsData);
+    try {
+      const tagsData = await getTags();
+      setAvailableTags(tagsData);
+    } catch (error) {
+      console.error("Error loading tags:", error);
+      toast.error("Failed to load tags");
+    }
   };
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,25 +163,33 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `artwork/${fileName}`;
       
+      console.log("Uploading file to path:", filePath);
+      console.log("User authenticated:", !!user);
+      console.log("User is admin:", isAdmin);
+      
       // Upload to Supabase Storage
-      const { error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (error) {
-        throw error;
+        console.error('Error details:', error);
+        throw new Error(`Error uploading image: ${JSON.stringify(error)}`);
       }
       
       // Get the public URL
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('images')
         .getPublicUrl(filePath);
       
       toast.success(t.imageUploadSuccess);
-      return data.publicUrl;
+      return urlData.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error(t.imageUploadError);
+      toast.error(error instanceof Error ? error.message : t.imageUploadError);
       throw error;
     } finally {
       setIsUploading(false);
