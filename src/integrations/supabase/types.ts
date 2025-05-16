@@ -103,14 +103,17 @@ export type Database = {
         Row: {
           id: string
           name: string
+          name_bg: string
         }
         Insert: {
           id: string
           name: string
+          name_bg: string
         }
         Update: {
           id?: string
           name?: string
+          name_bg?: string
         }
         Relationships: []
       }

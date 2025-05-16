@@ -21,11 +21,11 @@ const translations = {
     uploadArtwork: "Upload Artwork"
   },
   bg: {
-    title: "Galería",
-    allCategories: "Todos",
-    allTags: "Todas las Etiquetas",
-    noArtworks: "No se encontraron obras.",
-    uploadArtwork: "Subir Obra"
+    title: "Галерия",
+    allCategories: "Всички",
+    allTags: "Всички Етикети",
+    noArtworks: "Няма намерени творби.",
+    uploadArtwork: "Качи Творба"
   }
 };
 
@@ -118,7 +118,7 @@ const Gallery = () => {
               className="cursor-pointer hover-scale"
               onClick={() => handleTagSelect(tag.id)}
             >
-              {tag.name}
+              {language === 'en' ? tag.name : tag.name_bg}
             </Badge>
           ))}
         </div>

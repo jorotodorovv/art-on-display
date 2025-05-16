@@ -37,20 +37,20 @@ const translations = {
     adminOnly: "Only admins can upload artwork"
   },
   bg: {
-    title: "Subir Obra",
-    artworkTitle: "Título",
-    description: "Descripción",
-    image: "Imagen",
-    tags: "Etiquetas",
-    addTag: "Añadir Etiqueta",
-    createTag: "Crear Nueva Etiqueta",
-    cancel: "Cancelar",
-    upload: "Subir",
-    enterTag: "Ingrese nombre de etiqueta",
-    uploadingImage: "Subiendo imagen...",
-    imageUploadError: "Error al subir la imagen",
-    imageUploadSuccess: "Imagen subida exitosamente",
-    adminOnly: "Solo los administradores pueden subir obras"
+    title: "Качване на творба",
+    artworkTitle: "Заглавие",
+    description: "Описание",
+    image: "Изображение",
+    tags: "Етикети",
+    addTag: "Добави етикет",
+    createTag: "Създай нов етикет",
+    cancel: "Отказ",
+    upload: "Качи",
+    enterTag: "Въведи име на етикет",
+    uploadingImage: "Качване на изображение...",
+    imageUploadError: "Грешка при качване на изображението",
+    imageUploadSuccess: "Изображението е качено успешно",
+    adminOnly: "Само администраторите могат да качват творби"
   }
 };
 
@@ -70,8 +70,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<{ id: string; name: string }[]>([]);
+  const [availableTags, setAvailableTags] = useState<{ id: string; name: string; name_bg: string }[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
+  const [newTagInputBg, setNewTagInputBg] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   
   useEffect(() => {
@@ -117,7 +118,10 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   };
   
   const handleAddNewTag = async () => {
-    if (!newTagInput.trim()) return;
+    if (!newTagInput.trim() || !newTagInputBg.trim()) {
+      toast.error(language === 'en' ? "Both language fields are required" : "Двете езикови полета са задължителни");
+      return;
+    }
     
     try {
       // Create a slug from the tag name
@@ -128,13 +132,14 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       if (existingTag) {
         handleTagToggle(tagId);
         setNewTagInput("");
+        setNewTagInputBg("");
         return;
       }
       
       // Add new tag to the database
       const { data, error } = await supabase
         .from('tags')
-        .insert({ id: tagId, name: newTagInput.trim() })
+        .insert({ id: tagId, name: newTagInput.trim(), name_bg: newTagInputBg.trim() })
         .select()
         .single();
       
@@ -145,9 +150,10 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       }
       
       // Add the new tag to available tags and selected tags
-      setAvailableTags(prev => [...prev, { id: data.id, name: data.name }]);
+      setAvailableTags(prev => [...prev, { id: data.id, name: data.name, name_bg: data.name_bg }]);
       setSelectedTags(prev => [...prev, data.id]);
       setNewTagInput("");
+      setNewTagInputBg("");
       
     } catch (error) {
       console.error("Error adding new tag:", error);
@@ -247,6 +253,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     setImagePreview("");
     setSelectedTags([]);
     setNewTagInput("");
+    setNewTagInputBg("");
   };
   
   return (
@@ -331,23 +338,30 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
                   className="cursor-pointer hover-scale"
                   onClick={() => handleTagToggle(tag.id)}
                 >
-                  {tag.name}
+                  {language === 'en' ? tag.name : tag.name_bg}
                 </Badge>
               ))}
             </div>
             
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <Input
                 value={newTagInput}
                 onChange={(e) => setNewTagInput(e.target.value)}
-                placeholder={t.enterTag}
+                placeholder={language === 'en' ? "Enter tag name (English)" : "Въведете име на етикет (Английски)"}
+                className="mb-2"
+              />
+              <Input
+                value={newTagInputBg}
+                onChange={(e) => setNewTagInputBg(e.target.value)}
+                placeholder={language === 'en' ? "Enter tag name (Bulgarian)" : "Въведете име на етикет (Български)"}
+                className="mb-2"
               />
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={handleAddNewTag}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 w-full"
               >
                 <Plus className="h-4 w-4" />
                 {t.addTag}

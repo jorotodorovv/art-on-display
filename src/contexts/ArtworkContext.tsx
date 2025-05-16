@@ -72,11 +72,11 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
 
       // Convert tags data to ArtworkTag[]
       const tagsMap = tagsData.reduce((acc: Record<string, ArtworkTag>, tag) => {
-        acc[tag.id] = { id: tag.id, name: tag.name };
+        acc[tag.id] = { id: tag.id, name: tag.name, name_bg: tag.name_bg };
         return acc;
       }, {});
 
-      setTags(tagsData.map(tag => ({ id: tag.id, name: tag.name })));
+      setTags(tagsData.map(tag => ({ id: tag.id, name: tag.name, name_bg: tag.name_bg })));
 
       // Map artwork_tags relationships to artworks
       const artworksWithTags = artworksData.map((artwork) => {
@@ -196,7 +196,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
         return [];
       }
 
-      return data.map(tag => ({ id: tag.id, name: tag.name }));
+      return data.map(tag => ({ id: tag.id, name: tag.name, name_bg: tag.name_bg }));
     } catch (error) {
       console.error("Error in getTags:", error);
       return [];

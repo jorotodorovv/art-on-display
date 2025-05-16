@@ -2,6 +2,7 @@
 export interface ArtworkTag {
   id: string;
   name: string;
+  name_bg: string;
 }
 
 export interface Artwork {

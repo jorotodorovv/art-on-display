@@ -12,7 +12,7 @@ const translations = {
     addToSale: "Add to For Sale",
   },
   bg: {
-    addToSale: "Añadir a En Venta",
+    addToSale: "Добави за продажба",
   }
 };
 
@@ -54,7 +54,7 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
           <div className="flex flex-wrap gap-2">
             {artwork.tags.map(tag => (
               <Badge key={tag.id} variant="secondary">
-                {tag.name}
+                {language === 'en' ? tag.name : tag.name_bg}
               </Badge>
             ))}
           </div>

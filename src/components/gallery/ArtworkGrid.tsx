@@ -15,6 +15,8 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   onArtworkClick,
   noArtworksMessage
 }) => {
+  const { language } = useLanguage();
+  
   if (artworks.length === 0) {
     return (
       <div className="text-center py-8">
@@ -44,7 +46,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             <div className="flex flex-wrap gap-1 mt-2">
               {artwork.tags.map(tag => (
                 <Badge key={tag.id} variant="outline" className="text-xs">
-                  {tag.name}
+                  {language === 'en' ? tag.name : tag.name_bg}
                 </Badge>
               ))}
             </div>
