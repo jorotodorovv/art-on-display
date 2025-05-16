@@ -25,21 +25,21 @@ const translations = {
     requestCommission: "Request Commission"
   },
   bg: {
-    title: "Obras en Venta",
-    description: "Explore obras originales y impresiones disponibles. Contacte por email para consultas de compra o comisiones personalizadas.",
-    inquirySent: "Consulta Enviada",
-    inquiryDescription: "Te contactaremos sobre \"{title}\" pronto.",
-    sold: "Vendido",
-    inquire: "Consultar",
-    commissionsTitle: "Información de Comisiones",
-    commissionsDescription: "Estoy disponible para comisiones de obras personalizadas. Contáctame con tus ideas y requisitos.",
-    process: "Proceso:",
-    processDetails: "Consulta inicial, bocetos conceptuales, creación de obra final",
-    timeline: "Tiempo:",
-    timelineDetails: "2-4 semanas dependiendo del tamaño y complejidad",
-    pricing: "Precios:",
-    pricingDetails: "Desde $500, varía según tamaño y materiales",
-    requestCommission: "Solicitar Comisión"
+    title: "Творби за Продажба",
+    description: "Разгледайте налични оригинални творби и принтове. Свържете се чрез имейл за въпроси за покупка или поръчки.",
+    inquirySent: "Запитването е изпратено",
+    inquiryDescription: "Ще се свържем с вас относно \"{title}\" скоро.",
+    sold: "Продадено",
+    inquire: "Запитване",
+    commissionsTitle: "Информация за Поръчки",
+    commissionsDescription: "Приемам поръчки за персонализирани творби. Моля, свържете се с мен с вашите идеи и изисквания.",
+    process: "Процес:",
+    processDetails: "Първоначална консултация, концептуални скици, създаване на финална творба",
+    timeline: "Време:",
+    timelineDetails: "2-4 седмици в зависимост от размера и сложността",
+    pricing: "Цени:",
+    pricingDetails: "Започват от $500, варират според размера и материалите",
+    requestCommission: "Заявка за Поръчка"
   }
 };
 
@@ -78,36 +78,42 @@ const ForSale = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {artworksForSale.map((artwork) => (
-          <div key={artwork.id} className="flex flex-col border rounded-lg overflow-hidden">
-            <div className="relative">
-              <img 
-                src={artwork.image} 
-                alt={artwork.title} 
-                className="w-full h-64 object-cover"
-              />
-              {!artwork.available && (
-                <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
-                  <Badge className="text-lg py-1.5 px-3">{t.sold}</Badge>
+        {artworksForSale.map((artwork) => {
+          // Get appropriate title and description based on language
+          const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
+          const description = language === 'en' ? artwork.description : (artwork.description_bg || artwork.description);
+          
+          return (
+            <div key={artwork.id} className="flex flex-col border rounded-lg overflow-hidden">
+              <div className="relative">
+                <img 
+                  src={artwork.image} 
+                  alt={title} 
+                  className="w-full h-64 object-cover"
+                />
+                {!artwork.available && (
+                  <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+                    <Badge className="text-lg py-1.5 px-3">{t.sold}</Badge>
+                  </div>
+                )}
+              </div>
+              <div className="p-5 flex flex-col flex-grow">
+                <h3 className="text-xl font-semibold mb-1">{title}</h3>
+                <p className="mb-3">{description}</p>
+                <div className="mt-auto pt-4 flex items-center justify-between">
+                  <p className="text-lg font-medium">{formatPrice(artwork.price)}</p>
+                  <Button 
+                    onClick={() => handleInquire(title)} 
+                    disabled={!artwork.available}
+                    className="hover-scale"
+                  >
+                    {artwork.available ? t.inquire : t.sold}
+                  </Button>
                 </div>
-              )}
-            </div>
-            <div className="p-5 flex flex-col flex-grow">
-              <h3 className="text-xl font-semibold mb-1">{artwork.title}</h3>
-              <p className="mb-3">{artwork.description}</p>
-              <div className="mt-auto pt-4 flex items-center justify-between">
-                <p className="text-lg font-medium">{formatPrice(artwork.price)}</p>
-                <Button 
-                  onClick={() => handleInquire(artwork.title)} 
-                  disabled={!artwork.available}
-                  className="hover-scale"
-                >
-                  {artwork.available ? t.inquire : t.sold}
-                </Button>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         
         {artworksForSale.length === 0 && (
           <div className="col-span-2 text-center py-12">

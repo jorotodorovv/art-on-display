@@ -27,13 +27,17 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
   const { language } = useLanguage();
   const t = translations[language];
   
+  // Get the appropriate title and description based on the selected language
+  const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
+  const description = language === 'en' ? artwork.description : (artwork.description_bg || artwork.description);
+  
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-background max-w-3xl w-full rounded-lg shadow-lg overflow-hidden animate-scale-in">
         <div className="relative">
           <img 
             src={artwork.image} 
-            alt={artwork.title} 
+            alt={title} 
             className="w-full h-64 sm:h-80 object-cover"
           />
           <Button 
@@ -49,8 +53,8 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
           </Button>
         </div>
         <div className="p-6">
-          <h2 className="text-2xl font-semibold mb-2">{artwork.title}</h2>
-          <p className="text-muted-foreground mb-4">{artwork.description}</p>
+          <h2 className="text-2xl font-semibold mb-2">{title}</h2>
+          <p className="text-muted-foreground mb-4">{description}</p>
           <div className="flex flex-wrap gap-2">
             {artwork.tags.map(tag => (
               <Badge key={tag.id} variant="secondary">

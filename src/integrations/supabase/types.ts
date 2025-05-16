@@ -44,33 +44,39 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          description_bg: string | null
           for_sale: boolean | null
           id: number
           image: string
           price: number | null
           title: string
+          title_bg: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          description_bg?: string | null
           for_sale?: boolean | null
           id?: number
           image: string
           price?: number | null
           title: string
+          title_bg?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          description_bg?: string | null
           for_sale?: boolean | null
           id?: number
           image?: string
           price?: number | null
           title?: string
+          title_bg?: string | null
           updated_at?: string
         }
         Relationships: []

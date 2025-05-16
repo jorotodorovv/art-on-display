@@ -9,9 +9,11 @@ import { useAuth } from "./AuthContext";
 export interface ArtworkForSale {
   id: number;
   title: string;
+  title_bg?: string;
   image: string;
   price: number;
   description: string;
+  description_bg?: string;
   available: boolean;
 }
 
@@ -87,6 +89,10 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
 
         return {
           ...artwork,
+          title: artwork.title,
+          title_bg: artwork.title_bg,
+          description: artwork.description,
+          description_bg: artwork.description_bg,
           tags: artworkTags,
         };
       });
@@ -120,8 +126,10 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
         .from('artworks')
         .insert({
           title: artwork.title,
+          title_bg: artwork.title_bg,
           image: artwork.image,
           description: artwork.description,
+          description_bg: artwork.description_bg,
           for_sale: artwork.forSale || false,
           price: artwork.price || null,
         })
@@ -209,9 +217,11 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     .map(artwork => ({
       id: artwork.id,
       title: artwork.title,
+      title_bg: artwork.title_bg,
       image: artwork.image,
       price: artwork.price || 0,
       description: artwork.description,
+      description_bg: artwork.description_bg,
       available: true
     }));
 

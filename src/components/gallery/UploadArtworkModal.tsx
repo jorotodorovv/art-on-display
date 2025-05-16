@@ -22,8 +22,10 @@ import { supabase } from "@/integrations/supabase/client";
 const translations = {
   en: {
     title: "Upload Artwork",
-    artworkTitle: "Title",
-    description: "Description",
+    artworkTitle: "Title (English)",
+    artworkTitleBg: "Title (Bulgarian)",
+    description: "Description (English)",
+    descriptionBg: "Description (Bulgarian)",
     image: "Image",
     tags: "Tags",
     addTag: "Add Tag",
@@ -38,8 +40,10 @@ const translations = {
   },
   bg: {
     title: "Качване на творба",
-    artworkTitle: "Заглавие",
-    description: "Описание",
+    artworkTitle: "Заглавие (Английски)",
+    artworkTitleBg: "Заглавие (Български)",
+    description: "Описание (Английски)",
+    descriptionBg: "Описание (Български)",
     image: "Изображение",
     tags: "Етикети",
     addTag: "Добави етикет",
@@ -66,7 +70,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const t = translations[language];
   
   const [title, setTitle] = useState("");
+  const [titleBg, setTitleBg] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionBg, setDescriptionBg] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -229,7 +235,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       // Add artwork with the image URL
       await addArtwork({
         title,
+        title_bg: titleBg,
         description,
+        description_bg: descriptionBg,
         image: imageUrl,
         tags: selectedTags
       });
@@ -248,7 +256,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   
   const resetForm = () => {
     setTitle("");
+    setTitleBg("");
     setDescription("");
+    setDescriptionBg("");
     setImageFile(null);
     setImagePreview("");
     setSelectedTags([]);
@@ -275,11 +285,30 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
           </div>
           
           <div className="space-y-2">
+            <Label htmlFor="titleBg">{t.artworkTitleBg}</Label>
+            <Input
+              id="titleBg"
+              value={titleBg}
+              onChange={(e) => setTitleBg(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="description">{t.description}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="descriptionBg">{t.descriptionBg}</Label>
+            <Textarea
+              id="descriptionBg"
+              value={descriptionBg}
+              onChange={(e) => setDescriptionBg(e.target.value)}
               rows={3}
             />
           </div>

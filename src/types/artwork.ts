@@ -8,8 +8,10 @@ export interface ArtworkTag {
 export interface Artwork {
   id: number;
   title: string;
+  title_bg?: string;
   image: string;
   description: string;
+  description_bg?: string;
   tags: ArtworkTag[];
   forSale?: boolean;
   price?: number;
