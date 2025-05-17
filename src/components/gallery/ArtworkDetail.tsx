@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { X, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/components/LanguageToggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose
+} from "@/components/ui/dialog";
 
 const translations = {
   en: {
@@ -26,31 +31,20 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
   const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const t = translations[language];
-  
+
   // Get the appropriate title and description based on the selected language
   const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
   const description = language === 'en' ? artwork.description : (artwork.description_bg || artwork.description);
-  
+
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background max-w-3xl w-full rounded-lg shadow-lg overflow-hidden animate-scale-in">
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl p-0 overflow-hidden">
         <div className="relative">
-          <img 
-            src={artwork.image} 
-            alt={title} 
-            className="w-full h-64 sm:h-80 object-cover"
+          <img
+            src={artwork.image}
+            alt={title}
+            className="w-full max-h-[600px] object-cover"
           />
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="absolute top-4 right-4 rounded-full bg-background/50 hover:bg-background"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
         <div className="p-6">
           <h2 className="text-2xl font-semibold mb-2">{title}</h2>
@@ -62,10 +56,10 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
               </Badge>
             ))}
           </div>
-          
+
           {isAuthenticated && onSetForSale && (
             <div className="mt-6 pt-4 border-t">
-              <Button 
+              <Button
                 onClick={() => onSetForSale(artwork)}
                 className="flex items-center gap-2"
               >
@@ -75,8 +69,8 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
