@@ -10,7 +10,6 @@ import { Plus } from "lucide-react";
 import ArtworkGrid from "@/components/gallery/ArtworkGrid";
 import ArtworkDetail from "@/components/gallery/ArtworkDetail";
 import UploadArtworkModal from "@/components/gallery/UploadArtworkModal";
-import SetForSaleModal from "@/components/gallery/SetForSaleModal";
 
 const translations = {
   en: {
@@ -136,12 +135,6 @@ const Gallery = () => {
       <UploadArtworkModal
         open={isUploadModalOpen}
         onOpenChange={setIsUploadModalOpen}
-      />
-
-      <SetForSaleModal
-        open={isForSaleModalOpen}
-        onOpenChange={setIsForSaleModalOpen}
-        artwork={selectedForSaleArtwork}
       />
     </>
   );

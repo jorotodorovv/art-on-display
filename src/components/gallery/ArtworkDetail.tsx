@@ -1,11 +1,15 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Artwork } from "@/types/artwork";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, DollarSign } from "lucide-react";
+import { DollarSign, EuroIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/components/LanguageToggle";
+import { useArtworks } from "@/contexts/ArtworkContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/sonner";
 import {
   Dialog,
   DialogContent,
@@ -14,9 +18,21 @@ import {
 const translations = {
   en: {
     addToSale: "Add to For Sale",
+    price: "Price",
+    setPrice: "Set Price",
+    cancel: "Cancel",
+    error: "Please enter a valid price",
+    priceLabel: "Enter price in EUR",
+    adminOnly: "Only admins can set artwork for sale"
   },
   bg: {
     addToSale: "Добави за продажба",
+    price: "Цена",
+    setPrice: "Задай цена",
+    cancel: "Отказ",
+    error: "Моля, въведете валидна цена",
+    priceLabel: "Въведете цена в EUR",
+    adminOnly: "Само администраторите могат да задават цена на творбите"
   }
 };
 
@@ -27,13 +43,38 @@ interface ArtworkDetailProps {
 }
 
 const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetForSale }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const { language } = useLanguage();
+  const { setArtworkForSale } = useArtworks();
   const t = translations[language];
+  
+  const [price, setPrice] = useState("");
+  const [showPriceInput, setShowPriceInput] = useState(false);
 
   // Get the appropriate title and description based on the selected language
   const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
   const description = language === 'en' ? artwork.description : (artwork.description_bg || artwork.description);
+
+  const handleSetForSale = async () => {
+    if (!isAdmin) {
+      toast.error(t.adminOnly);
+      return;
+    }
+    
+    if (!price || isNaN(Number(price)) || Number(price) <= 0) {
+      toast.error(t.error);
+      return;
+    }
+    
+    await setArtworkForSale(artwork.id, Number(price));
+    setPrice("");
+    setShowPriceInput(false);
+    
+    // If there's an onSetForSale callback, call it
+    if (onSetForSale) {
+      onSetForSale(artwork);
+    }
+  };
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -56,15 +97,52 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
             ))}
           </div>
 
-          {isAuthenticated && onSetForSale && (
+          {isAuthenticated && isAdmin && (
             <div className="mt-6 pt-4 border-t">
-              <Button
-                onClick={() => onSetForSale(artwork)}
-                className="flex items-center gap-2"
-              >
-                <DollarSign className="h-4 w-4" />
-                {t.addToSale}
-              </Button>
+              {!showPriceInput ? (
+                <Button
+                  onClick={() => setShowPriceInput(true)}
+                  className="flex items-center gap-2"
+                >
+                  <EuroIcon className="h-4 w-4" />
+                  {t.addToSale}
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">{t.price}</Label>
+                    <div className="relative">
+                      <EuroIcon className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        placeholder={t.priceLabel}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowPriceInput(false);
+                        setPrice("");
+                      }}
+                    >
+                      {t.cancel}
+                    </Button>
+                    <Button onClick={handleSetForSale}>
+                      {t.setPrice}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
