@@ -12,6 +12,7 @@ interface ArtworkContextType {
   setArtworkForSale: (id: number, price: number) => Promise<void>;
   toggleFeatured: (id: number) => Promise<void>;
   getTags: () => Promise<ArtworkTag[]>;
+  reorderArtworks: (reorderedArtworks: Artwork[]) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -31,7 +32,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
       const { data: artworksData, error: artworksError } = await supabase
         .from('artworks')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('display_order', { ascending: true });
 
       if (artworksError) {
         toast.error("Failed to fetch artworks");
@@ -110,6 +111,16 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
   // Add new artwork
   const addArtwork = async (artwork: Omit<Artwork, "id" | "tags"> & { tags: string[] }) => {
     try {
+      // Get the highest display_order to place new artwork at the end
+      const { data: maxOrderData, error: maxOrderError } = await supabase
+        .from('artworks')
+        .select('display_order')
+        .order('display_order', { ascending: false })
+        .limit(1)
+        .single();
+
+      const nextOrder = maxOrderData?.display_order ? maxOrderData.display_order + 1 : 0;
+
       // Insert the artwork
       const { data: newArtwork, error: artworkError } = await supabase
         .from('artworks')
@@ -121,7 +132,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
           description_bg: artwork.description_bg,
           for_sale: artwork.for_sale || false,
           price: artwork.price || null,
-          featured: artwork.featured || false,
+          display_order: nextOrder,
         })
         .select()
         .single();
@@ -214,6 +225,40 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Reorder artworks
+  const reorderArtworks = async (reorderedArtworks: Artwork[]) => {
+    try {
+      // Update local state immediately for responsive UI
+      setArtworks(reorderedArtworks);
+      
+      // Prepare batch updates for Supabase
+      const updates = reorderedArtworks.map((artwork, index) => ({
+        id: artwork.id,
+        display_order: index
+      }));
+      
+      // Update each artwork's display_order in the database
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('artworks')
+          .update({ display_order: update.display_order })
+          .eq('id', update.id);
+          
+        if (error) {
+          console.error(`Error updating artwork ${update.id}:`, error);
+          // Continue with other updates even if one fails
+        }
+      }
+      
+      toast.success("Artwork order updated");
+    } catch (error) {
+      console.error("Error in reorderArtworks:", error);
+      toast.error("Failed to update artwork order");
+      // Revert to original order by refetching
+      fetchArtworks();
+    }
+  };
+
   // Get tags
   const getTags = async (): Promise<ArtworkTag[]> => {
     try {
@@ -243,6 +288,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
       addArtwork, 
       setArtworkForSale,
       toggleFeatured,
+      reorderArtworks,
       getTags,
       isLoading 
     }}>

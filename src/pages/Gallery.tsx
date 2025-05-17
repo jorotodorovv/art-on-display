@@ -6,11 +6,13 @@ import { useLanguage } from "@/components/LanguageToggle";
 import { useArtworks } from "../contexts/ArtworkContext";
 import { useAuth } from "../contexts/AuthContext";
 import { Artwork } from "@/types/artwork";
-import { Plus } from "lucide-react";
+import { Plus, GripVertical } from "lucide-react";
 import ArtworkGrid from "@/components/gallery/ArtworkGrid";
+import OrderableArtworkGrid from "@/components/gallery/OrderableArtworkGrid";
 import ArtworkDetail from "@/components/gallery/ArtworkDetail";
 import UploadArtworkModal from "@/components/gallery/UploadArtworkModal";
 import { useLocation } from "react-router-dom";
+import { toast } from "@/components/ui/sonner";
 
 const translations = {
   en: {
@@ -18,20 +20,24 @@ const translations = {
     allCategories: "All",
     allTags: "All Tags",
     noArtworks: "No artworks found.",
-    uploadArtwork: "Upload Artwork"
+    uploadArtwork: "Upload Artwork",
+    reorderMode: "Reorder Mode",
+    viewMode: "View Mode"
   },
   bg: {
     title: "Галерия",
     allCategories: "Всички",
     allTags: "Всички Етикети",
     noArtworks: "Няма намерени творби.",
-    uploadArtwork: "Качи Творба"
+    uploadArtwork: "Качи Творба",
+    reorderMode: "Режим на пренареждане",
+    viewMode: "Режим на преглед"
   }
 };
 
 const Gallery = () => {
   const { language } = useLanguage();
-  const { artworks, isLoading } = useArtworks();
+  const { artworks, isLoading, reorderArtworks } = useArtworks();
   const { isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
   const t = translations[language];
@@ -41,6 +47,7 @@ const Gallery = () => {
   const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>(artworks);
   const [visibleArtwork, setVisibleArtwork] = useState<Artwork | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
   const [isForSaleModalOpen, setIsForSaleModalOpen] = useState(false);
   const [selectedForSaleArtwork, setSelectedForSaleArtwork] = useState<Artwork | null>(null);
 
@@ -81,10 +88,13 @@ const Gallery = () => {
 
   const handleTagSelect = (tagId: string | null) => {
     setSelectedTag(tagId);
+    setIsReorderMode(false); // Exit reorder mode when filtering
   };
 
   const openArtworkDetail = (artwork: Artwork) => {
-    setVisibleArtwork(artwork);
+    if (!isReorderMode) {
+      setVisibleArtwork(artwork);
+    }
   };
 
   const closeArtworkDetail = () => {
@@ -97,6 +107,20 @@ const Gallery = () => {
     setIsForSaleModalOpen(true);
   };
 
+  const handleReorder = async (reorderedArtworks: Artwork[]) => {
+    await reorderArtworks(reorderedArtworks);
+  };
+
+  const toggleReorderMode = () => {
+    setIsReorderMode(!isReorderMode);
+    
+    if (!isReorderMode) {
+      // Entering reorder mode
+      setSelectedTag(null); // Clear tag filter when reordering
+      toast.info("Drag and drop artworks to reorder them");
+    }
+  };
+
   return (
     <>
       <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
@@ -104,38 +128,70 @@ const Gallery = () => {
           <div className="flex items-center justify-between w-full mb-6">
             <h1 className="text-3xl font-bold">{t.title}</h1>
 
-            {isAdmin && (
-              <Button
-                onClick={() => setIsUploadModalOpen(true)}
-                className="flex items-center gap-2"
-                size="sm"
-              >
-                <Plus className="h-4 w-4" />
-                {t.uploadArtwork}
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {isAdmin && (
+                <>
+                  <Button
+                    onClick={toggleReorderMode}
+                    variant={isReorderMode ? "secondary" : "outline"}
+                    className="flex items-center gap-2"
+                    size="sm"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                    {isReorderMode ? t.viewMode : t.reorderMode}
+                  </Button>
+
+                  <Button
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="flex items-center gap-2"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t.uploadArtwork}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-
-          <div className="flex flex-wrap gap-2 justify-center mb-8">
-            {tagObjects.map((tag) => (
+          {!isReorderMode && (
+            <div className="flex flex-wrap gap-2 justify-center mb-8">
               <Badge
-                key={tag.id}
-                variant={selectedTag === tag.id ? "secondary" : "outline"}
+                key="all"
+                variant={selectedTag === null ? "secondary" : "outline"}
                 className="cursor-pointer hover-scale"
-                onClick={() => handleTagSelect(tag.id)}
+                onClick={() => handleTagSelect(null)}
               >
-                {language === 'en' ? tag.name : tag.name_bg}
+                {t.allTags}
               </Badge>
-            ))}
-          </div>
+              {tagObjects.map((tag) => (
+                <Badge
+                  key={tag.id}
+                  variant={selectedTag === tag.id ? "secondary" : "outline"}
+                  className="cursor-pointer hover-scale"
+                  onClick={() => handleTagSelect(tag.id)}
+                >
+                  {language === 'en' ? tag.name : tag.name_bg}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        <ArtworkGrid
-          artworks={filteredArtworks}
-          onArtworkClick={openArtworkDetail}
-          noArtworksMessage={t.noArtworks}
-        />
+        {isAdmin && isReorderMode ? (
+          <OrderableArtworkGrid
+            artworks={artworks}
+            onArtworkClick={openArtworkDetail}
+            onReorder={handleReorder}
+            noArtworksMessage={t.noArtworks}
+          />
+        ) : (
+          <ArtworkGrid
+            artworks={filteredArtworks}
+            onArtworkClick={openArtworkDetail}
+            noArtworksMessage={t.noArtworks}
+          />
+        )}
       </div>
 
       {visibleArtwork && (
