@@ -3,10 +3,9 @@ import React, { useState } from "react";
 import { Artwork } from "@/types/artwork";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, EuroIcon } from "lucide-react";
+import { Star, EuroIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/components/LanguageToggle";
-import { useArtworks } from "@/contexts/ArtworkContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
@@ -14,10 +13,13 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
+import { useArtworks } from "@/contexts/ArtworkContext";
 
 const translations = {
   en: {
     addToSale: "Add to For Sale",
+    feature: "Feature on Homepage",
+    unfeature: "Remove from Homepage",
     price: "Price",
     setPrice: "Set Price",
     cancel: "Cancel",
@@ -27,6 +29,8 @@ const translations = {
   },
   bg: {
     addToSale: "Добави за продажба",
+    feature: "Показвай на началната страница",
+    unfeature: "Премахни от началната страница",
     price: "Цена",
     setPrice: "Задай цена",
     cancel: "Отказ",
@@ -45,9 +49,10 @@ interface ArtworkDetailProps {
 const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetForSale }) => {
   const { isAuthenticated, isAdmin } = useAuth();
   const { language } = useLanguage();
+  const { toggleFeatured } = useArtworks();
   const { setArtworkForSale } = useArtworks();
   const t = translations[language];
-  
+
   const [price, setPrice] = useState("");
   const [showPriceInput, setShowPriceInput] = useState(false);
 
@@ -55,21 +60,25 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
   const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
   const description = language === 'en' ? artwork.description : (artwork.description_bg || artwork.description);
 
+  const handleToggleFeatured = async () => {
+    await toggleFeatured(artwork.id);
+  };
+
   const handleSetForSale = async () => {
     if (!isAdmin) {
       toast.error(t.adminOnly);
       return;
     }
-    
+
     if (!price || isNaN(Number(price)) || Number(price) <= 0) {
       toast.error(t.error);
       return;
     }
-    
+
     await setArtworkForSale(artwork.id, Number(price));
     setPrice("");
     setShowPriceInput(false);
-    
+
     // If there's an onSetForSale callback, call it
     if (onSetForSale) {
       onSetForSale(artwork);
@@ -97,6 +106,18 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
             ))}
           </div>
 
+          {isAdmin && (
+            <div className="mt-6 pt-4 border-t flex flex-wrap gap-2">
+              <Button
+                onClick={handleToggleFeatured}
+                variant={artwork.featured ? "secondary" : "outline"}
+                className="flex items-center gap-2"
+              >
+                <Star className={`h-4 w-4 ${artwork.featured ? "fill-current" : ""}`} />
+                {artwork.featured ? t.unfeature : t.feature}
+              </Button>
+            </div>
+          )}
           {isAuthenticated && isAdmin && (
             <div className="mt-6 pt-4 border-t">
               {!showPriceInput ? (
@@ -128,8 +149,8 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => {
                         setShowPriceInput(false);
                         setPrice("");

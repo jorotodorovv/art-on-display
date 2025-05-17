@@ -20,8 +20,10 @@ export interface ArtworkForSale {
 interface ArtworkContextType {
   artworks: Artwork[];
   artworksForSale: ArtworkForSale[];
+  featuredArtworks: Artwork[];
   addArtwork: (artwork: Omit<Artwork, "id" | "tags"> & { tags: string[] }) => Promise<void>;
   setArtworkForSale: (id: number, price: number) => Promise<void>;
+  toggleFeatured: (id: number) => Promise<void>;
   getTags: () => Promise<ArtworkTag[]>;
   isLoading: boolean;
 }
@@ -132,6 +134,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
           description_bg: artwork.description_bg,
           for_sale: artwork.forSale || false,
           price: artwork.price || null,
+          featured: artwork.featured || false,
         })
         .select()
         .single();
@@ -192,6 +195,38 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Toggle artwork featured status
+  const toggleFeatured = async (id: number) => {
+    try {
+      // Find the artwork to toggle
+      const artwork = artworks.find(art => art.id === id);
+      
+      if (!artwork) {
+        toast.error("Artwork not found");
+        return;
+      }
+      
+      // Toggle the featured status
+      const { error } = await supabase
+        .from('artworks')
+        .update({ featured: !artwork.featured })
+        .eq('id', id);
+
+      if (error) {
+        toast.error("Failed to update artwork");
+        console.error("Error updating artwork featured status:", error);
+        return;
+      }
+
+      // Refresh artworks
+      fetchArtworks();
+      toast.success(artwork.featured ? "Artwork removed from featured" : "Artwork added to featured");
+    } catch (error) {
+      console.error("Error in toggleFeatured:", error);
+      toast.error("Failed to update artwork");
+    }
+  };
+
   // Get tags
   const getTags = async (): Promise<ArtworkTag[]> => {
     try {
@@ -225,12 +260,17 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
       available: true
     }));
 
+  // Get featured artworks
+  const featuredArtworks = artworks.filter(artwork => artwork.featured);
+
   return (
     <ArtworkContext.Provider value={{ 
       artworks, 
       artworksForSale,
+      featuredArtworks,
       addArtwork, 
       setArtworkForSale,
+      toggleFeatured,
       getTags,
       isLoading 
     }}>

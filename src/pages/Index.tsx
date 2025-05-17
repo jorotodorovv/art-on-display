@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/components/LanguageToggle";
 import EditableContent from "@/components/admin/EditableContent";
 import { getContentById, saveContent } from "@/services/contentService";
 import { toast } from "@/components/ui/sonner";
+import { useArtworks } from "@/contexts/ArtworkContext";
 
 // Default content if none exists in the database
 const defaultContent = {
@@ -23,6 +24,8 @@ const Index = () => {
   const [loaded, setLoaded] = useState(false);
   const [content, setContent] = useState(defaultContent);
   const { language } = useLanguage();
+  const { featuredArtworks, isLoading } = useArtworks();
+  const navigate = useNavigate();
   
   useEffect(() => {
     setLoaded(true);
@@ -60,6 +63,10 @@ const Index = () => {
     
     return result;
   };
+
+  const handleArtworkClick = (artworkId: number) => {
+    navigate(`/gallery`, { state: { openArtworkId: artworkId } });
+  };
   
   return (
     <div className={`space-y-8 ${loaded ? 'animate-fade-in' : 'opacity-0'}`}>
@@ -94,11 +101,20 @@ const Index = () => {
         </div>
         <div className="flex-1 relative">
           <div className="aspect-square bg-muted rounded-md overflow-hidden image-hover">
-            <img 
-              src="https://placehold.co/1000" 
-              alt={language === "en" ? "Featured artwork" : "Избрана творба"} 
-              className="w-full h-full object-cover"
-            />
+            {featuredArtworks.length > 0 ? (
+              <img 
+                src={featuredArtworks[0].image} 
+                alt={language === "en" ? featuredArtworks[0].title : (featuredArtworks[0].title_bg || featuredArtworks[0].title)} 
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={() => handleArtworkClick(featuredArtworks[0].id)}
+              />
+            ) : (
+              <img 
+                src="https://placehold.co/1000" 
+                alt={language === "en" ? "Featured artwork" : "Избрана творба"} 
+                className="w-full h-full object-cover"
+              />
+            )}
           </div>
         </div>
       </section>
@@ -108,44 +124,58 @@ const Index = () => {
           {language === "en" ? "Featured Works" : "Избрани Творби"}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {
-              id: 1,
-              title: language === "en" ? "Tranquil Waters" : "Спокойни Води",
-              image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
-              category: language === "en" ? "Paintings" : "Картини"
-            },
-            {
-              id: 2,
-              title: language === "en" ? "Mountain View" : "Планински Изглед",
-              image: "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-              category: language === "en" ? "Digital Art" : "Дигитално Изкуство"
-            },
-            {
-              id: 3,
-              title: language === "en" ? "Urban Landscape" : "Градски Пейзаж",
-              image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
-              category: language === "en" ? "Photography" : "Фотография"
-            }
-          ].map((work) => (
-            <Link 
-              to="/gallery" 
-              key={work.id} 
-              className="group block"
-            >
-              <div className="rounded-md overflow-hidden image-hover">
-                <img 
-                  src={work.image} 
-                  alt={work.title} 
-                  className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+          {featuredArtworks.length > 0 ? (
+            featuredArtworks.slice(0, 3).map(artwork => (
+              <div 
+                key={artwork.id} 
+                className="group block cursor-pointer"
+                onClick={() => handleArtworkClick(artwork.id)}
+              >
+                <div className="rounded-md overflow-hidden image-hover">
+                  <img 
+                    src={artwork.image} 
+                    alt={language === "en" ? artwork.title : (artwork.title_bg || artwork.title)} 
+                    className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <div className="mt-3">
+                  <h3 className="font-medium">
+                    {language === "en" ? artwork.title : (artwork.title_bg || artwork.title)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {artwork.tags.length > 0 ? 
+                      (language === "en" ? artwork.tags[0].name : artwork.tags[0].name_bg) : 
+                      (language === "en" ? "Artwork" : "Творба")}
+                  </p>
+                </div>
               </div>
-              <div className="mt-3">
-                <h3 className="font-medium">{work.title}</h3>
-                <p className="text-sm text-muted-foreground">{work.category}</p>
-              </div>
-            </Link>
-          ))}
+            ))
+          ) : (
+            // Fallback placeholder items
+            [1, 2, 3].map((item) => (
+              <Link 
+                to="/gallery" 
+                key={item} 
+                className="group block"
+              >
+                <div className="rounded-md overflow-hidden image-hover">
+                  <img 
+                    src={`https://placehold.co/800x600?text=Artwork+${item}`}
+                    alt={language === "en" ? "Artwork placeholder" : "Заместител за творба"} 
+                    className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <div className="mt-3">
+                  <h3 className="font-medium">
+                    {language === "en" ? `Featured Artwork ${item}` : `Избрана Творба ${item}`}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {language === "en" ? "Artwork" : "Творба"}
+                  </p>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
         <div className="text-center mt-8">
           <Button variant="outline" asChild className="hover-scale">

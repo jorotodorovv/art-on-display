@@ -15,6 +15,7 @@ export interface Artwork {
   tags: ArtworkTag[];
   forSale?: boolean;
   price?: number;
+  featured?: boolean;
   created_by?: string;
   created_at?: string;
   updated_at?: string;

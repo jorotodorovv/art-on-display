@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/LanguageToggle";
@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import ArtworkGrid from "@/components/gallery/ArtworkGrid";
 import ArtworkDetail from "@/components/gallery/ArtworkDetail";
 import UploadArtworkModal from "@/components/gallery/UploadArtworkModal";
+import { useLocation } from "react-router-dom";
 
 const translations = {
   en: {
@@ -32,6 +33,7 @@ const Gallery = () => {
   const { language } = useLanguage();
   const { artworks, isLoading } = useArtworks();
   const { isAuthenticated, isAdmin } = useAuth();
+  const location = useLocation();
   const t = translations[language];
 
   const [loaded, setLoaded] = useState(false);
@@ -64,6 +66,18 @@ const Gallery = () => {
 
     setFilteredArtworks(filtered);
   }, [selectedTag, artworks, isLoading]);
+
+  // Handle opening artwork details from navigation state
+  useEffect(() => {
+    if (location.state?.openArtworkId && artworks.length > 0) {
+      const artworkToOpen = artworks.find(art => art.id === location.state.openArtworkId);
+      if (artworkToOpen) {
+        setVisibleArtwork(artworkToOpen);
+        // Clear the state to avoid reopening on component updates
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, artworks]);
 
   const handleTagSelect = (tagId: string | null) => {
     setSelectedTag(tagId);
