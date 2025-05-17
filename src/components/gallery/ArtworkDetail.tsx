@@ -9,7 +9,6 @@ import { useLanguage } from "@/components/LanguageToggle";
 import {
   Dialog,
   DialogContent,
-  DialogClose
 } from "@/components/ui/dialog";
 
 const translations = {
