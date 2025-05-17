@@ -13,7 +13,7 @@ export interface Artwork {
   description: string;
   description_bg?: string;
   tags: ArtworkTag[];
-  forSale?: boolean;
+  for_sale?: boolean;
   price?: number;
   featured?: boolean;
   created_by?: string;

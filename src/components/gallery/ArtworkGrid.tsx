@@ -3,6 +3,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Artwork } from "@/types/artwork";
 import { useLanguage } from "@/components/LanguageToggle";
+import { EuroIcon } from "lucide-react";
 
 interface ArtworkGridProps {
   artworks: Artwork[];
@@ -34,7 +35,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
         return (
           <div 
             key={artwork.id} 
-            className="group cursor-pointer" 
+            className="group cursor-pointer relative" 
             onClick={() => onArtworkClick(artwork)}
           >
             <div className="rounded-md overflow-hidden image-hover">
@@ -54,6 +55,14 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
                   </Badge>
                 ))}
               </div>
+              
+              {/* Price display for artworks that are for sale */}
+              {artwork.for_sale && artwork.price && (
+                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground px-2 py-1 rounded-tl-md flex items-center gap-1 text-sm font-medium">
+                  <EuroIcon className="h-4 w-4" />
+                  <span>{artwork.price.toFixed(2)}</span>
+                </div>
+              )}
             </div>
           </div>
         );

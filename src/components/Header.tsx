@@ -79,14 +79,6 @@ const Header = () => {
           >
             {language === "en" ? navTexts.gallery.en : navTexts.gallery.bg}
           </NavLink>
-          <NavLink 
-            to="/for-sale" 
-            className={({ isActive }) => 
-              `art-link text-sm font-medium ${isActive ? 'text-primary after:scale-x-100' : 'text-muted-foreground'}`
-            }
-          >
-            {language === "en" ? navTexts.forSale.en : navTexts.forSale.bg}
-          </NavLink>
         </nav>
         
         <div className="flex items-center space-x-4">

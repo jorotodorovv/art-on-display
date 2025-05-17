@@ -8,7 +8,6 @@ import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Gallery from "./pages/Gallery";
-import ForSale from "./pages/ForSale";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { LanguageProvider } from "./components/LanguageToggle";
@@ -32,7 +31,6 @@ const App = () => (
                   <Route index element={<Index />} />
                   <Route path="about" element={<About />} />
                   <Route path="gallery" element={<Gallery />} />
-                  <Route path="for-sale" element={<ForSale />} />
                   <Route path="login" element={<Login />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>

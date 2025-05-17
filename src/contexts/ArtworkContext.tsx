@@ -1,25 +1,12 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Artwork, ArtworkTag } from "../types/artwork";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { useAuth } from "./AuthContext";
 
-// Type for artworks for sale
-export interface ArtworkForSale {
-  id: number;
-  title: string;
-  title_bg?: string;
-  image: string;
-  price: number;
-  description: string;
-  description_bg?: string;
-  available: boolean;
-}
-
 interface ArtworkContextType {
   artworks: Artwork[];
-  artworksForSale: ArtworkForSale[];
   featuredArtworks: Artwork[];
   addArtwork: (artwork: Omit<Artwork, "id" | "tags"> & { tags: string[] }) => Promise<void>;
   setArtworkForSale: (id: number, price: number) => Promise<void>;
@@ -132,7 +119,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
           image: artwork.image,
           description: artwork.description,
           description_bg: artwork.description_bg,
-          for_sale: artwork.forSale || false,
+          for_sale: artwork.for_sale || false,
           price: artwork.price || null,
           featured: artwork.featured || false,
         })
@@ -246,27 +233,12 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Generate artworks for sale from regular artworks
-  const artworksForSale = artworks
-    .filter(artwork => artwork.forSale)
-    .map(artwork => ({
-      id: artwork.id,
-      title: artwork.title,
-      title_bg: artwork.title_bg,
-      image: artwork.image,
-      price: artwork.price || 0,
-      description: artwork.description,
-      description_bg: artwork.description_bg,
-      available: true
-    }));
-
   // Get featured artworks
   const featuredArtworks = artworks.filter(artwork => artwork.featured);
 
   return (
     <ArtworkContext.Provider value={{ 
-      artworks, 
-      artworksForSale,
+      artworks,
       featuredArtworks,
       addArtwork, 
       setArtworkForSale,
