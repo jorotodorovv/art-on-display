@@ -45,6 +45,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           description_bg: string | null
+          featured: boolean
           for_sale: boolean | null
           id: number
           image: string
@@ -58,6 +59,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           description_bg?: string | null
+          featured?: boolean
           for_sale?: boolean | null
           id?: number
           image: string
@@ -71,6 +73,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           description_bg?: string | null
+          featured?: boolean
           for_sale?: boolean | null
           id?: number
           image?: string
