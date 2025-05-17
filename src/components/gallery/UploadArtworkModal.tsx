@@ -15,7 +15,7 @@ import { useArtworks } from "@/contexts/ArtworkContext";
 import { useLanguage } from "@/components/LanguageToggle";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
-import { Plus, X, ImagePlus } from "lucide-react";
+import { Plus, X, FileImage } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,7 +26,7 @@ const translations = {
     artworkTitleBg: "Title (Bulgarian)",
     description: "Description (English)",
     descriptionBg: "Description (Bulgarian)",
-    image: "Image",
+    image: "Drop Image",
     tags: "Tags",
     addTag: "Add Tag",
     createTag: "Create New Tag",
@@ -44,7 +44,7 @@ const translations = {
     artworkTitleBg: "Заглавие (Български)",
     description: "Описание (Английски)",
     descriptionBg: "Описание (Български)",
-    image: "Изображение",
+    image: "Качи Изображение",
     tags: "Етикети",
     addTag: "Добави етикет",
     createTag: "Създай нов етикет",
@@ -68,7 +68,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const { language } = useLanguage();
   const { isAdmin, user } = useAuth();
   const t = translations[language];
-  
+
   const [title, setTitle] = useState("");
   const [titleBg, setTitleBg] = useState("");
   const [description, setDescription] = useState("");
@@ -80,7 +80,9 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
   const [newTagInput, setNewTagInput] = useState("");
   const [newTagInputBg, setNewTagInputBg] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (open) {
       loadTags();
@@ -88,7 +90,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       resetForm();
     }
   }, [open]);
-  
+
   const loadTags = async () => {
     try {
       const tagsData = await getTags();
@@ -98,12 +100,12 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       toast.error("Failed to load tags");
     }
   };
-  
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      
+
       // Create a preview
       const reader = new FileReader();
       reader.onload = () => {
@@ -112,7 +114,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleTagToggle = (tagId: string) => {
     setSelectedTags(prevTags => {
       if (prevTags.includes(tagId)) {
@@ -122,17 +124,17 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       }
     });
   };
-  
+
   const handleAddNewTag = async () => {
     if (!newTagInput.trim() || !newTagInputBg.trim()) {
       toast.error(language === 'en' ? "Both language fields are required" : "Двете езикови полета са задължителни");
       return;
     }
-    
+
     try {
       // Create a slug from the tag name
       const tagId = newTagInput.toLowerCase().replace(/\s+/g, '-');
-      
+
       // Check if the tag already exists
       const existingTag = availableTags.find(tag => tag.id === tagId);
       if (existingTag) {
@@ -141,32 +143,32 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         setNewTagInputBg("");
         return;
       }
-      
+
       // Add new tag to the database
       const { data, error } = await supabase
         .from('tags')
         .insert({ id: tagId, name: newTagInput.trim(), name_bg: newTagInputBg.trim() })
         .select()
         .single();
-      
+
       if (error) {
         toast.error("Failed to create tag");
         console.error("Error creating tag:", error);
         return;
       }
-      
+
       // Add the new tag to available tags and selected tags
       setAvailableTags(prev => [...prev, { id: data.id, name: data.name, name_bg: data.name_bg }]);
       setSelectedTags(prev => [...prev, data.id]);
       setNewTagInput("");
       setNewTagInputBg("");
-      
+
     } catch (error) {
       console.error("Error adding new tag:", error);
       toast.error("Failed to create tag");
     }
   };
-  
+
   const uploadImage = async (file: File): Promise<string> => {
     setIsUploading(true);
     try {
@@ -174,11 +176,11 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `artwork/${fileName}`;
-      
+
       console.log("Uploading file to path:", filePath);
       console.log("User authenticated:", !!user);
       console.log("User is admin:", isAdmin);
-      
+
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('images')
@@ -186,17 +188,17 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
           cacheControl: '3600',
           upsert: false
         });
-      
+
       if (error) {
         console.error('Error details:', error);
         throw new Error(`Error uploading image: ${JSON.stringify(error)}`);
       }
-      
+
       // Get the public URL
       const { data: urlData } = supabase.storage
         .from('images')
         .getPublicUrl(filePath);
-      
+
       toast.success(t.imageUploadSuccess);
       return urlData.publicUrl;
     } catch (error) {
@@ -207,23 +209,44 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       setIsUploading(false);
     }
   };
-  
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      setImageFile(file);
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isAdmin) {
       toast.error(t.adminOnly);
       return;
     }
-    
+
     if (!imageFile) {
       toast.error("Please select an image");
       return;
     }
-    
+
     try {
       setIsUploading(true);
-      
+
       // Upload image first
       let imageUrl: string;
       try {
@@ -231,7 +254,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       } catch (error) {
         return; // Stop if image upload fails
       }
-      
+
       // Add artwork with the image URL
       await addArtwork({
         title,
@@ -241,11 +264,11 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
         image: imageUrl,
         tags: selectedTags
       });
-      
+
       // Close the modal and reset the form
       onOpenChange(false);
       resetForm();
-      
+
     } catch (error) {
       console.error("Error submitting artwork:", error);
       toast.error("Failed to upload artwork");
@@ -253,7 +276,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
       setIsUploading(false);
     }
   };
-  
+
   const resetForm = () => {
     setTitle("");
     setTitleBg("");
@@ -265,15 +288,53 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
     setNewTagInput("");
     setNewTagInputBg("");
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t.title}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div
+            className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {imagePreview ? (
+              <div className="relative">
+                <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto rounded-md" />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="destructive"
+                  className="absolute top-2 right-2 h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImagePreview(null);
+                    setImageFile(null);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <div className="py-4 flex flex-col items-center text-muted-foreground">
+                <FileImage className="h-8 w-8 mb-2" />
+                <p>{t.image}</p>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="title">{t.artworkTitle}</Label>
             <Input
@@ -283,7 +344,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="titleBg">{t.artworkTitleBg}</Label>
             <Input
@@ -292,7 +353,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               onChange={(e) => setTitleBg(e.target.value)}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">{t.description}</Label>
             <Textarea
@@ -302,7 +363,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               rows={3}
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="descriptionBg">{t.descriptionBg}</Label>
             <Textarea
@@ -312,51 +373,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               rows={3}
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="image">{t.image}</Label>
-            <div className="flex items-center gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById('image-input')?.click()}
-                className="flex items-center gap-2"
-              >
-                <ImagePlus className="h-4 w-4" />
-                Select Image
-              </Button>
-              <Input
-                id="image-input"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-                required={!imagePreview}
-              />
-              {imagePreview && (
-                <div className="relative h-16 w-16 rounded overflow-hidden">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-0 right-0 h-6 w-6"
-                    onClick={() => {
-                      setImageFile(null);
-                      setImagePreview("");
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          
+
           <div className="space-y-2">
             <Label>{t.tags}</Label>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -371,7 +388,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
                 </Badge>
               ))}
             </div>
-            
+
             <div className="space-y-2">
               <Input
                 value={newTagInput}
@@ -397,7 +414,7 @@ const UploadArtworkModal: React.FC<UploadArtworkModalProps> = ({ open, onOpenCha
               </Button>
             </div>
           </div>
-          
+
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t.cancel}
