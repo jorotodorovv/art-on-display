@@ -8,7 +8,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { Artwork } from "@/types/artwork";
 import { Plus, GripVertical } from "lucide-react";
 import ArtworkGrid from "@/components/gallery/ArtworkGrid";
-import OrderableArtworkGrid from "@/components/gallery/OrderableArtworkGrid";
 import ArtworkDetail from "@/components/gallery/ArtworkDetail";
 import UploadArtworkModal from "@/components/gallery/UploadArtworkModal";
 import { useLocation } from "react-router-dom";
@@ -178,20 +177,13 @@ const Gallery = () => {
           )}
         </div>
 
-        {isAdmin && isReorderMode ? (
-          <OrderableArtworkGrid
-            artworks={artworks}
-            onArtworkClick={openArtworkDetail}
-            onReorder={handleReorder}
-            noArtworksMessage={t.noArtworks}
-          />
-        ) : (
-          <ArtworkGrid
-            artworks={filteredArtworks}
-            onArtworkClick={openArtworkDetail}
-            noArtworksMessage={t.noArtworks}
-          />
-        )}
+        <ArtworkGrid
+          artworks={isReorderMode ? artworks : filteredArtworks}
+          onArtworkClick={openArtworkDetail}
+          noArtworksMessage={t.noArtworks}
+          orderable={isAdmin && isReorderMode}
+          onReorder={isReorderMode ? handleReorder : undefined}
+        />
       </div>
 
       {visibleArtwork && (
