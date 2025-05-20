@@ -20,14 +20,20 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    // Create Supabase client using the auth header from the request
+    // Create Supabase client using the service role key for admin operations
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
+    
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
-    // Parse the request body for cart items
-    const { items } = await req.json();
+    // Parse the request body for cart items and shipping address
+    const { items, shippingAddress } = await req.json();
 
     // Get authenticated user (if any)
     const authHeader = req.headers.get("Authorization");
@@ -42,6 +48,13 @@ serve(async (req) => {
         email = userData.user.email || email;
         userId = userData.user.id;
       }
+    }
+    
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
     
     // Check if a stripe customer already exists for this email
@@ -69,16 +82,41 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
+    // Create the order in our database
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        user_id: userId,
+        items: items,
+        shipping_address: shippingAddress,
+        status: "pending",
+        total_amount: items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+      })
+      .select('id')
+      .single();
+      
+    if (orderError) {
+      console.error("Error creating order:", orderError);
+      return new Response(JSON.stringify({ error: "Failed to create order" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
     // Create the checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success`,
+      success_url: `${req.headers.get("origin")}/payment-success?order_id=${order.id}`,
       cancel_url: `${req.headers.get("origin")}/checkout`,
       metadata: {
-        user_id: userId || "guest",
+        user_id: userId,
+        order_id: order.id,
+      },
+      shipping_address_collection: {
+        allowed_countries: ['BG', 'US', 'CA', 'GB', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'PT', 'GR']
       }
     });
 

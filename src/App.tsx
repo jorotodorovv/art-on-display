@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Checkout from "./pages/Checkout";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Orders from "./pages/Orders";
 import { LanguageProvider } from "./components/LanguageToggle";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ArtworkProvider } from "./contexts/ArtworkContext";
@@ -38,6 +39,7 @@ const App = () => (
                     <Route path="login" element={<Login />} />
                     <Route path="checkout" element={<Checkout />} />
                     <Route path="payment-success" element={<PaymentSuccess />} />
+                    <Route path="orders" element={<Orders />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>
                 </Routes>
