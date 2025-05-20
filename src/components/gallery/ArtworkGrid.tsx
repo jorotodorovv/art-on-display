@@ -14,8 +14,8 @@ interface ArtworkGridProps {
   onReorder?: (reorderedArtworks: Artwork[]) => Promise<void>;
 }
 
-const ArtworkGrid: React.FC<ArtworkGridProps> = ({ 
-  artworks, 
+const ArtworkGrid: React.FC<ArtworkGridProps> = ({
+  artworks,
   onArtworkClick,
   noArtworksMessage,
   orderable = false,
@@ -24,12 +24,12 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   const { language } = useLanguage();
   const [items, setItems] = useState<Artwork[]>(artworks);
   const [isDragging, setIsDragging] = useState(false);
-  
+
   // Update local state when artworks prop changes
   useEffect(() => {
     setItems(artworks);
   }, [artworks]);
-  
+
   const handleDragStart = () => {
     setIsDragging(true);
     // Add a class to the body to indicate dragging (for styling)
@@ -39,20 +39,20 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   const handleDragEnd = async (result: DropResult) => {
     setIsDragging(false);
     document.body.classList.remove('dragging-artwork');
-    
+
     // Drop outside the list or no movement
     if (!result.destination || result.destination.index === result.source.index) {
       return;
     }
-    
+
     // Reorder the items
     const newItems = Array.from(items);
     const [movedItem] = newItems.splice(result.source.index, 1);
     newItems.splice(result.destination.index, 0, movedItem);
-    
+
     // Update state locally for immediate visual feedback
     setItems(newItems);
-    
+
     // Persist the changes to the database
     if (onReorder) {
       await onReorder(newItems);
@@ -68,30 +68,29 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   }
 
   // Render a single artwork item - extracted as a reusable component
-  const renderArtworkItem = (artwork: Artwork, index?: number, isDragging?: boolean, dragHandleProps?: any) => {
+  const renderArtworkItem = (artwork: Artwork, index?: number, isDragging?: boolean) => {
     const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
-    
+
     // Common classes for both modes
-    const containerClasses = orderable 
+    const containerClasses = orderable
       ? `group cursor-grab transition-transform duration-300 ${isDragging ? 'shadow-lg scale-105 z-10' : ''}`
       : "group cursor-pointer relative";
-    
-    const imageClasses = `w-full aspect-[4/3] object-cover transition-transform duration-300 ${
-      orderable && isDragging ? '' : 'group-hover:scale-105'
-    }`;
+
+    const imageClasses = `w-full aspect-[4/3] object-cover transition-transform duration-300 
+      ${orderable && isDragging ? '' : 'group-hover:scale-105'
+      }`;
 
     return (
-      <div 
-        key={artwork.id} 
+      <div
+        key={artwork.id}
         className={containerClasses}
         onClick={orderable && isDragging ? undefined : () => onArtworkClick(artwork)}
-        {...(dragHandleProps || {})}
       >
         <div className="rounded-md overflow-hidden image-hover relative">
-          <img 
+          <img
             loading="lazy"
-            src={artwork.image} 
-            alt={title} 
+            src={artwork.image}
+            alt={title}
             className={imageClasses}
           />
           {orderable && index !== undefined && (
@@ -109,7 +108,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
               </Badge>
             ))}
           </div>
-          
+
           {/* Price display for artworks that are for sale */}
           {artwork.for_sale && artwork.price && (
             <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground px-2 py-1 rounded-tl-md flex items-center gap-1 text-sm font-medium">
@@ -139,7 +138,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
     <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <Droppable droppableId="artwork-grid" direction="horizontal">
         {(provided) => (
-          <div 
+          <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={gridContainerClass}
@@ -147,15 +146,15 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             {items.map((artwork, index) => (
               <Draggable key={artwork.id.toString()} draggableId={artwork.id.toString()} index={index}>
                 {(provided, snapshot) => (
-                  <div 
+                  <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
+                    {...provided.dragHandleProps}
                   >
                     {renderArtworkItem(
-                      artwork, 
-                      index, 
-                      snapshot.isDragging, 
-                      provided.dragHandleProps
+                      artwork,
+                      index,
+                      snapshot.isDragging,
                     )}
                   </div>
                 )}
