@@ -84,6 +84,7 @@ export const ArtworkProvider = ({ children }: { children: ReactNode }) => {
           description: artwork.description,
           description_bg: artwork.description_bg,
           tags: artworkTags,
+          display_order: artwork.display_order || 0, // Ensure display_order is always defined
         };
       });
 

@@ -19,4 +19,5 @@ export interface Artwork {
   created_by?: string;
   created_at?: string;
   updated_at?: string;
+  display_order?: number;
 }

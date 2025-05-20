@@ -1,9 +1,10 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Artwork } from "@/types/artwork";
 import { useLanguage } from "@/components/LanguageToggle";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { EuroIcon } from "lucide-react";
 
 interface OrderableArtworkGridProps {
   artworks: Artwork[];
@@ -38,11 +39,12 @@ const OrderableArtworkGrid: React.FC<OrderableArtworkGridProps> = ({
     document.body.classList.remove('dragging-artwork');
     
     // Drop outside the list or no movement
-    if (!result.destination || result.destination.index === result.source.index) {
+    if (!result.destination) {
       return;
     }
     
-    // Reorder the items
+    // Even if destination index is the same as source index, we still want to
+    // process it as the user might have dragged horizontally or between rows
     const newItems = Array.from(items);
     const [movedItem] = newItems.splice(result.source.index, 1);
     newItems.splice(result.destination.index, 0, movedItem);
@@ -109,6 +111,14 @@ const OrderableArtworkGrid: React.FC<OrderableArtworkGridProps> = ({
                             </Badge>
                           ))}
                         </div>
+                        
+                        {/* Price display for artworks that are for sale */}
+                        {artwork.for_sale && artwork.price && (
+                          <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground px-2 py-1 rounded-tl-md flex items-center gap-1 text-sm font-medium">
+                            <EuroIcon className="h-4 w-4" />
+                            <span>{artwork.price.toFixed(2)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
