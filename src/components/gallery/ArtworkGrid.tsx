@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Artwork } from "@/types/artwork";
 import { useLanguage } from "@/components/LanguageToggle";
-import { EuroIcon } from "lucide-react";
+import { EuroIcon, ShoppingCart } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
+import { useCart } from "@/contexts/CartContext";
 
 interface ArtworkGridProps {
   artworks: Artwork[];
@@ -22,6 +24,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   onReorder
 }) => {
   const { language } = useLanguage();
+  const { addToCart, isInCart } = useCart();
   const [items, setItems] = useState<Artwork[]>(artworks);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -70,6 +73,10 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   // Render a single artwork item - extracted as a reusable component
   const renderArtworkItem = (artwork: Artwork, index?: number, isDragging?: boolean) => {
     const title = language === 'en' ? artwork.title : (artwork.title_bg || artwork.title);
+    const translations = {
+      addToCart: language === 'en' ? 'Add to Cart' : 'Добави в кошницата',
+      inCart: language === 'en' ? 'In Cart' : 'В кошницата'
+    };
 
     // Common classes for both modes
     const containerClasses = orderable
@@ -79,6 +86,11 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
     const imageClasses = `w-full aspect-[4/3] object-cover transition-transform duration-300 
       ${orderable && isDragging ? '' : 'group-hover:scale-105'
       }`;
+
+    const handleAddToCart = (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent triggering the click on the container
+      addToCart(artwork);
+    };
 
     return (
       <div
@@ -109,11 +121,24 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             ))}
           </div>
 
-          {/* Price display for artworks that are for sale */}
+          {/* Price display and Add to Cart button for artworks that are for sale */}
           {artwork.for_sale && artwork.price && (
-            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground px-2 py-1 rounded-tl-md flex items-center gap-1 text-sm font-medium">
-              <EuroIcon className="h-4 w-4" />
-              <span>{artwork.price.toFixed(2)}</span>
+            <div className="mt-2 flex justify-between items-center">
+              <div className="flex items-center gap-1 font-medium">
+                <EuroIcon className="h-4 w-4" />
+                <span>{artwork.price.toFixed(2)}</span>
+              </div>
+              
+              <Button
+                variant={isInCart(artwork.id) ? "secondary" : "default"}
+                size="sm"
+                className="ml-auto"
+                disabled={isInCart(artwork.id)}
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-3 w-3 mr-1" />
+                {isInCart(artwork.id) ? translations.inCart : translations.addToCart}
+              </Button>
             </div>
           )}
         </div>

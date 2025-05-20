@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Artwork } from "@/types/artwork";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, EuroIcon } from "lucide-react";
+import { Star, EuroIcon, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/components/LanguageToggle";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { useArtworks } from "@/contexts/ArtworkContext";
+import { useCart } from "@/contexts/CartContext";
 
 const translations = {
   en: {
@@ -25,7 +26,9 @@ const translations = {
     cancel: "Cancel",
     error: "Please enter a valid price",
     priceLabel: "Enter price in EUR",
-    adminOnly: "Only admins can set artwork for sale"
+    adminOnly: "Only admins can set artwork for sale",
+    addToCart: "Add to Cart",
+    inCart: "In Cart"
   },
   bg: {
     addToSale: "Добави за продажба",
@@ -36,7 +39,9 @@ const translations = {
     cancel: "Отказ",
     error: "Моля, въведете валидна цена",
     priceLabel: "Въведете цена в EUR",
-    adminOnly: "Само администраторите могат да задават цена на творбите"
+    adminOnly: "Само администраторите могат да задават цена на творбите",
+    addToCart: "Добави в кошницата",
+    inCart: "В кошницата"
   }
 };
 
@@ -51,6 +56,7 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
   const { language } = useLanguage();
   const { toggleFeatured } = useArtworks();
   const { setArtworkForSale } = useArtworks();
+  const { addToCart, isInCart } = useCart();
   const t = translations[language];
 
   const [price, setPrice] = useState("");
@@ -85,6 +91,10 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
     }
   };
 
+  const handleAddToCart = () => {
+    addToCart(artwork);
+  };
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-3xl p-0 overflow-hidden">
@@ -105,6 +115,27 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({ artwork, onClose, onSetFo
               </Badge>
             ))}
           </div>
+
+          {/* For Sale Price Display */}
+          {artwork.for_sale && artwork.price && (
+            <div className="flex items-center gap-2 mt-4 bg-muted p-3 rounded-md">
+              <EuroIcon className="h-5 w-5 text-primary" />
+              <span className="text-lg font-bold">{artwork.price.toFixed(2)}</span>
+              
+              {/* Add to Cart Button */}
+              <div className="ml-auto">
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={isInCart(artwork.id)}
+                  variant={isInCart(artwork.id) ? "secondary" : "default"}
+                  className="flex items-center gap-2"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {isInCart(artwork.id) ? t.inCart : t.addToCart}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {isAdmin && (
             <div className="mt-6 pt-4 border-t flex flex-wrap gap-2">

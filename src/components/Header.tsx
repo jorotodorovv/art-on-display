@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { getContentById } from "@/services/contentService";
 import { useLanguage } from "./LanguageToggle";
+import ShoppingCart from "./ShoppingCart";
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -119,6 +120,9 @@ const Header = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          {/* Shopping Cart */}
+          <ShoppingCart />
 
           {isAuthenticated ? (
             <TooltipProvider>
