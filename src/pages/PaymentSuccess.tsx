@@ -1,140 +1,145 @@
 
 import { useEffect, useState } from 'react';
-import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { CheckIcon, Loader2, ExternalLinkIcon } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/components/LanguageToggle';
 import { toast } from '@/components/ui/sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 const translations = {
   en: {
-    success: 'Payment Successful',
-    message: 'Thank you for your purchase! Your order has been confirmed.',
-    orderNumber: 'Order #',
-    continue: 'Continue Shopping',
-    orderProcessing: 'Your order is being processed and will be shipped soon.',
-    emailNotification: 'You will receive an email with the details of your purchase.',
-    viewAll: 'View All Artworks',
+    paymentSuccess: 'Payment Successful!',
+    thankYou: 'Thank you for your purchase',
+    processing: 'Processing your order...',
+    confirmingPayment: 'Confirming your payment...',
+    orderLocked: 'Your order has been locked in.',
     viewOrders: 'View My Orders',
-    processing: 'Finalizing your order...'
+    continueShopping: 'Continue Shopping',
+    orderId: 'Order ID',
+    purchaseConfirmed: 'Purchase confirmed!',
+    artworksUpdated: 'Artwork status updated'
   },
   bg: {
-    success: 'Плащането е успешно',
-    message: 'Благодарим ви за покупката! Вашата поръчка е потвърдена.',
-    orderNumber: 'Поръчка #',
-    continue: 'Продължи пазаруването',
-    orderProcessing: 'Вашата поръчка се обработва и скоро ще бъде изпратена.',
-    emailNotification: 'Ще получите имейл с подробности за покупката си.',
-    viewAll: 'Преглед на всички произведения',
-    viewOrders: 'Моите поръчки',
-    processing: 'Финализиране на поръчката...'
+    paymentSuccess: 'Плащането е успешно!',
+    thankYou: 'Благодарим Ви за покупката',
+    processing: 'Обработване на поръчката...',
+    confirmingPayment: 'Потвърждаване на плащането...',
+    orderLocked: 'Вашата поръчка е потвърдена.',
+    viewOrders: 'Преглед на поръчките',
+    continueShopping: 'Продължи пазаруването',
+    orderId: 'Номер на поръчка',
+    purchaseConfirmed: 'Покупката е потвърдена!',
+    artworksUpdated: 'Статусът на произведенията е актуализиран'
   }
 };
 
 const PaymentSuccess = () => {
   const { clearCart } = useCart();
   const { language } = useLanguage();
-  const { isAuthenticated } = useAuth();
+  const [processing, setProcessing] = useState(true);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [isProcessing, setIsProcessing] = useState(true);
-  const orderId = searchParams.get('order_id');
   const t = translations[language];
-  
+
   useEffect(() => {
-    // Redirect if not authenticated
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/payment-success' } });
-      return;
-    }
+    // Try to get order ID from session storage
+    const storedOrderId = sessionStorage.getItem('current_order_id');
+    setOrderId(storedOrderId);
 
-    // Process payment if order ID is present
-    if (orderId) {
-      const processPayment = async () => {
-        try {
-          // Call the process-payment function to update artwork status
-          const { error } = await supabase.functions.invoke('process-payment', {
-            body: { orderId }
-          });
-          
-          if (error) {
-            console.error('Error processing payment:', error);
-          }
-          
-          // Clear the cart
-          clearCart();
-          
-          // Show success toast
-          toast.success(
-            language === 'en' ? 'Payment completed successfully!' : 'Плащането е завършено успешно!'
-          );
-        } catch (error) {
-          console.error('Error finalizing payment:', error);
-        } finally {
-          setIsProcessing(false);
-        }
-      };
-      
-      processPayment();
-    } else {
-      // If there's no order ID, just clear the cart
-      clearCart();
-      setIsProcessing(false);
-    }
-  }, [clearCart, language, orderId, navigate, isAuthenticated]);
+    // Immediately clear the cart on payment success
+    clearCart();
 
-  if (isProcessing) {
-    return (
-      <div className="container mx-auto px-4 py-16 max-w-xl">
-        <div className="bg-background shadow-md rounded-lg p-8 text-center">
-          <div className="flex flex-col items-center justify-center py-8 space-y-6">
-            <Loader2 className="h-16 w-16 text-primary animate-spin" />
-            <p className="text-lg text-muted-foreground">{t.processing}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    const processPayment = async () => {
+      if (!storedOrderId) {
+        setProcessing(false);
+        return;
+      }
+
+      try {
+        // Call process-payment edge function to update order status and artwork status
+        const { error } = await supabase.functions.invoke('process-payment', {
+          body: { orderId: storedOrderId }
+        });
+
+        if (error) throw error;
+
+        toast.success(t.purchaseConfirmed);
+        
+        // Wait 2 seconds to show the checkmark, then navigate to orders page
+        setTimeout(() => {
+          setProcessing(false);
+          
+          // Wait a little longer before redirecting to Orders page to give user time to see the success screen
+          setTimeout(() => {
+            // Clear order ID from session storage
+            sessionStorage.removeItem('current_order_id');
+            navigate('/orders');
+          }, 2000);
+        }, 2000);
+      } catch (error) {
+        console.error('Error processing payment:', error);
+        setProcessing(false);
+      }
+    };
+
+    processPayment();
+  }, [clearCart, language, navigate, t.artworksUpdated, t.purchaseConfirmed]);
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-xl">
+    <div className="container mx-auto px-4 py-12 max-w-lg">
       <div className="bg-background shadow-md rounded-lg p-8 text-center">
-        <div className="flex flex-col items-center justify-center py-8 space-y-6">
-          <div className="bg-green-100 p-4 rounded-full">
-            <CheckCircle className="h-16 w-16 text-green-500" />
-          </div>
-          
-          <h1 className="text-3xl font-bold">{t.success}</h1>
-          <p className="text-lg text-muted-foreground mb-2">{t.message}</p>
-          
-          {orderId && (
-            <div className="bg-muted/50 px-6 py-4 rounded-md w-full max-w-sm">
-              <p className="font-medium">{t.orderNumber}{orderId}</p>
-            </div>
+        <div className="flex flex-col items-center justify-center py-6 space-y-6">
+          {processing ? (
+            <>
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">{t.processing}</h1>
+                <p className="text-muted-foreground mt-1">{t.confirmingPayment}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckIcon className="h-10 w-10 text-emerald-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">{t.paymentSuccess}</h1>
+                <p className="text-muted-foreground mt-1">{t.thankYou}</p>
+              </div>
+              
+              {orderId && (
+                <>
+                  <Separator />
+                  <div className="text-sm text-muted-foreground">
+                    <span>{t.orderId}: </span>
+                    <span className="font-mono">{orderId}</span>
+                  </div>
+                </>
+              )}
+              
+              <p className="text-muted-foreground">{t.orderLocked}</p>
+              
+              <div className="flex space-x-4">
+                <Button asChild className="flex items-center">
+                  <Link to="/orders">
+                    {t.viewOrders} 
+                    <ExternalLinkIcon className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                
+                <Button variant="outline" asChild>
+                  <Link to="/gallery">
+                    {t.continueShopping}
+                  </Link>
+                </Button>
+              </div>
+            </>
           )}
-          
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>{t.orderProcessing}</p>
-            <p>{t.emailNotification}</p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm pt-4">
-            <Button asChild variant="default" size="lg" className="flex-1">
-              <Link to="/gallery">
-                {t.continue}
-              </Link>
-            </Button>
-            
-            <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link to="/orders" className="flex items-center justify-center">
-                {t.viewOrders}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
       </div>
     </div>

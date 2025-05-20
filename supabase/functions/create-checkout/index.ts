@@ -15,118 +15,58 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Stripe with the secret key
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
-    });
+    // Get the authorization header from the request
+    const authHeader = req.headers.get("Authorization")!;
+    const token = authHeader.replace("Bearer ", "");
 
-    // Create Supabase client using the service role key for admin operations
+    // Create Supabase client with the user's JWT
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
-    
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
 
-    // Parse the request body for cart items and shipping address
-    const { items, shippingAddress } = await req.json();
-
-    // Get authenticated user (if any)
-    const authHeader = req.headers.get("Authorization");
-    let email = "guest@example.com"; // Default for guest checkout
-    let userId = null;
-
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-      
-      if (!userError && userData.user) {
-        email = userData.user.email || email;
-        userId = userData.user.id;
-      }
-    }
-    
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Authentication required" }), {
+    // Verify the user's JWT
+    const { data, error } = await supabaseClient.auth.getUser(token);
+    if (error || !data.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
-    
-    // Check if a stripe customer already exists for this email
-    let customerId;
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    } else {
-      // Create a new customer
-      const newCustomer = await stripe.customers.create({ email });
-      customerId = newCustomer.id;
-    }
 
-    // Create line items for Stripe checkout
-    const lineItems = items.map((item) => ({
-      price_data: {
-        currency: "eur",
-        product_data: {
-          name: item.title,
-          images: [item.image],
-        },
-        unit_amount: Math.round(item.price * 100), // Convert to cents
-      },
-      quantity: item.quantity,
-    }));
+    // Parse the request body
+    const { items, totalAmount, orderId } = await req.json();
 
-    // Create the order in our database
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from("orders")
-      .insert({
-        user_id: userId,
-        items: items,
-        shipping_address: shippingAddress,
-        status: "pending",
-        total_amount: items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-      })
-      .select('id')
-      .single();
-      
-    if (orderError) {
-      console.error("Error creating order:", orderError);
-      return new Response(JSON.stringify({ error: "Failed to create order" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      });
-    }
-
-    // Create the checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: lineItems,
-      mode: "payment",
-      success_url: `${req.headers.get("origin")}/payment-success?order_id=${order.id}`,
-      cancel_url: `${req.headers.get("origin")}/checkout`,
-      metadata: {
-        user_id: userId,
-        order_id: order.id,
-      },
-      shipping_address_collection: {
-        allowed_countries: ['BG', 'US', 'CA', 'GB', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'IE', 'PT', 'GR']
-      }
+    // Initialize Stripe
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2023-10-16",
     });
 
-    // Return the session URL
+    // Create a checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: items.map((item) => ({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: item.title,
+            images: [item.image],
+          },
+          unit_amount: Math.round(item.price * 100), // Convert to cents
+        },
+        quantity: item.quantity || 1,
+      })),
+      mode: "payment",
+      success_url: `${req.headers.get("origin")}/payment-success`,
+      cancel_url: `${req.headers.get("origin")}/checkout`,
+      client_reference_id: orderId, // Store order ID for reference
+    });
+
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
